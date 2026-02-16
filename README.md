@@ -422,6 +422,357 @@ Distance entrée → (5,1) : |0-5| + |0-1| = 6
 Distance totale pour cette commande : 5 + 6 = 11
 ```
 
+---
+
+## 📅 Jour 2 : Respect des Contraintes Dures
+
+### Objectifs du Jour 2
+
+Le Jour 2 se concentre sur l'intégration de **toutes les contraintes obligatoires** dans le système d'allocation. L'objectif est de garantir que chaque allocation respecte toutes les règles métier définies.
+
+### Contraintes Implémentées
+
+#### 2.1) Vérification de Capacité
+
+Pour chaque agent, vérification que :
+- **Poids total** ≤ capacité en poids
+- **Volume total** ≤ capacité en volume
+
+Cette vérification était déjà présente dans le Jour 1 via la méthode `Agent.can_take()`, mais elle est maintenant intégrée dans le système complet de vérification des contraintes.
+
+#### 2.2) Vérification d'Incompatibilités
+
+**Fonction : `can_combine(products)`**
+
+Vérifie qu'aucun produit dans une commande n'est incompatible avec un autre produit de la même commande.
+
+**Implémentation :**
+
+```python
+def can_combine(products: List[Product]) -> bool:
+    """
+    Vérifie qu'aucun produit n'est incompatible avec un autre dans la liste.
+    Retourne False si deux produits incompatibles sont présents.
+    """
+    product_ids = {p.id for p in products}
+    
+    for product in products:
+        # Vérifier si ce produit est incompatible avec un autre produit de la liste
+        for incompatible_id in product.incompatible_with:
+            if incompatible_id in product_ids:
+                return False
+    
+    return True
+```
+
+**Exemple :**
+- Si `Product_001` a `incompatible_with: ["Product_042"]`
+- Et qu'une commande contient à la fois `Product_001` et `Product_042`
+- Alors `can_combine()` retourne `False` et la commande ne peut pas être assignée
+
+#### 2.3) Restrictions des Robots
+
+Les robots ont des restrictions spécifiques qui doivent être vérifiées :
+
+**a) Zones interdites (`no_zones`)**
+- Les robots ne peuvent pas accéder à certaines zones de l'entrepôt
+- Exemple : Robot R1 ne peut pas aller en Zone C (alimentaire)
+
+**b) Objets fragiles (`no_fragile`)**
+- Les robots ne peuvent pas transporter d'objets fragiles
+- Vérification du champ `fragile: true` dans les produits
+
+**c) Poids maximum par item (`max_item_weight`)**
+- Chaque robot a une limite de poids par item individuel
+- Exemple : Robot R1 ne peut pas prendre d'item > 10 kg
+
+**Implémentation :**
+
+```python
+def check_robot_restrictions(
+    agent: Agent,
+    order: Order,
+    products_by_id: Dict[str, Product],
+    warehouse: Warehouse,
+    restrictions: Dict
+) -> bool:
+    """
+    Vérifie toutes les restrictions spécifiques aux robots.
+    """
+    if agent.type != "robot":
+        return True  # Les restrictions ne s'appliquent qu'aux robots
+    
+    # Vérifier les zones interdites
+    no_zones = restrictions.get("no_zones", [])
+    if no_zones:
+        for location in order.unique_locations:
+            zone = get_product_zone(warehouse, location)
+            if zone in no_zones:
+                return False
+    
+    # Vérifier les objets fragiles
+    if restrictions.get("no_fragile", False):
+        for item in order.items:
+            product = products_by_id.get(item.product_id)
+            if product and product.fragile:
+                return False
+    
+    # Vérifier le poids maximum par item
+    max_item_weight = restrictions.get("max_item_weight")
+    if max_item_weight is not None:
+        for item in order.items:
+            product = products_by_id.get(item.product_id)
+            if product and product.weight > max_item_weight:
+                return False
+    
+    return True
+```
+
+#### 2.4) Gestion des Chariots
+
+**Association chariot ↔ humain**
+
+Les chariots nécessitent qu'un humain soit disponible pour les gérer. Un humain peut gérer un chariot, mais doit avoir la capacité suffisante pour la commande.
+
+**Implémentation :**
+
+```python
+def check_cart_human_association(
+    agent: Agent,
+    order: Order,
+    agents: List[Agent],
+    assignment: Dict[str, Optional[str]]
+) -> bool:
+    """
+    Vérifie qu'un chariot peut être assigné à une commande.
+    Un chariot nécessite qu'un humain soit disponible pour le gérer.
+    """
+    if agent.type != "cart":
+        return True  # Cette vérification ne s'applique qu'aux chariots
+    
+    # Trouver tous les humains disponibles
+    humans = [a for a in agents if a.type == "human"]
+    
+    # Vérifier qu'il existe au moins un humain disponible avec capacité suffisante
+    if not humans:
+        return False
+    
+    for human in humans:
+        if human.can_take(order):
+            return True
+    
+    return False
+```
+
+#### 2.5) Allocation avec Contraintes
+
+**Algorithme glouton amélioré :**
+
+L'allocation du Jour 1 a été modifiée pour intégrer toutes les contraintes :
+
+```python
+def allocate_first_fit(
+    orders: List[Order],
+    agents: List[Agent],
+    products_by_id: Dict[str, Product],
+    warehouse: Warehouse
+) -> Dict[str, Optional[str]]:
+    """
+    JOUR 2 : Allocation avec toutes les contraintes dures.
+    Algorithme glouton amélioré :
+    - Pour chaque commande (par ordre d'arrivée)
+    - Tester chaque agent dans l'ordre (robots d'abord)
+    - Vérifier toutes les contraintes
+    - Assigner au premier agent valide
+    """
+    assignment: Dict[str, Optional[str]] = {}
+    agents_sorted = sort_agents_by_priority(agents)  # Robots en premier
+
+    for order in orders:
+        assigned = False
+        for agent in agents_sorted:
+            # Vérifier toutes les contraintes (Jour 2)
+            if can_agent_take_order_with_constraints(
+                agent=agent,
+                order=order,
+                products_by_id=products_by_id,
+                warehouse=warehouse,
+                restrictions=agent.restrictions,
+                agents=agents,
+                assignment=assignment
+            ):
+                agent.assign(order)
+                assignment[order.id] = agent.id
+                assigned = True
+                break
+        if not assigned:
+            assignment[order.id] = None  # Aucun agent disponible respectant les contraintes
+
+    return assignment
+```
+
+**Priorité des agents :**
+1. **Robots** (priorité 0) : Testés en premier car moins coûteux
+2. **Humains** (priorité 1) : Testés ensuite
+3. **Chariots** (priorité 2) : Testés en dernier car nécessitent un humain
+
+### Module `src/constraints.py`
+
+Le module `constraints.py` centralise toutes les fonctions de vérification des contraintes :
+
+- `get_product_zone()` : Détermine la zone d'un produit
+- `can_combine()` : Vérifie les incompatibilités entre produits
+- `check_robot_restrictions()` : Vérifie les restrictions spécifiques aux robots
+- `check_cart_human_association()` : Vérifie l'association chariot-humain
+- `can_agent_take_order_with_constraints()` : Fonction principale qui combine toutes les vérifications
+
+### Tests Unitaires
+
+Des tests unitaires complets ont été créés dans `tests/test_constraints.py` pour vérifier :
+
+- ✅ Détermination des zones
+- ✅ Vérification des incompatibilités
+- ✅ Restrictions de zones pour les robots
+- ✅ Restrictions sur les objets fragiles
+- ✅ Restrictions de poids maximum
+- ✅ Association chariot-humain
+- ✅ Vérification complète de toutes les contraintes
+
+**Exécution des tests :**
+
+```bash
+python tests/test_constraints.py
+```
+
+### Modifications du Modèle Agent
+
+Le modèle `Agent` a été enrichi pour stocker les restrictions :
+
+```python
+@dataclass
+class Agent:
+    # ... autres champs ...
+    restrictions: Dict = field(default_factory=dict)  # Restrictions spécifiques (Jour 2)
+```
+
+Les restrictions sont chargées depuis `agents.json` dans `loader.py` :
+
+```python
+def build_agent(raw: dict) -> Agent:
+    base_kwargs = dict(
+        # ... autres champs ...
+        restrictions=dict(raw.get("restrictions", {})),  # Charger les restrictions
+    )
+    # ...
+```
+
+### Résultats du Jour 2
+
+Le système affiche maintenant :
+
+```
+══════════════════════════════════════
+JOUR 2 — Allocation avec contraintes
+══════════════════════════════════════
+Commandes totales : 30
+Commandes assignées: X
+Commandes non assignées: Y
+Distance totale estimée (proxy): Z
+```
+
+Les commandes non assignées indiquent maintenant les cas où **aucune contrainte n'a pu être respectée**, pas seulement les problèmes de capacité.
+
+---
+
+## 🔧 Intégration de MiniZinc (Jour 2+)
+
+### Utilisation de MiniZinc pour l'Allocation Optimale
+
+Le projet intègre maintenant **MiniZinc**, un langage de modélisation par contraintes, pour résoudre le problème d'allocation de manière optimale.
+
+#### Installation
+
+MiniZinc doit être installé séparément :
+
+1. **Installer MiniZinc** : Téléchargez depuis https://www.minizinc.org/
+2. **Installer la bibliothèque Python** : `pip install minizinc`
+
+#### Modèle MiniZinc (`models/allocation.mzn`)
+
+Le modèle MiniZinc définit le problème d'allocation comme un problème de satisfaction de contraintes :
+
+**Variables de décision :**
+- `assignment[o]` : Agent assigné à la commande `o` (0 = non assignée)
+
+**Contraintes modélisées :**
+1. Capacité en poids et volume
+2. Zones interdites pour les robots
+3. Interdiction des objets fragiles pour les robots
+4. Limite de poids par item pour les robots
+5. Incompatibilités entre produits
+
+**Objectif :** Maximiser le nombre de commandes assignées
+
+#### Module `src/minizinc_solver.py`
+
+Le module `minizinc_solver.py` fournit la fonction `allocate_with_minizinc()` qui :
+
+1. Charge le modèle MiniZinc
+2. Prépare les données (capacités, restrictions, incompatibilités)
+3. Résout le problème avec un solveur MiniZinc (Gecode, Chuffed, etc.)
+4. Retourne l'allocation optimale
+
+**Exemple d'utilisation :**
+
+```python
+from src.minizinc_solver import allocate_with_minizinc
+
+assignment = allocate_with_minizinc(
+    orders=orders,
+    agents=agents,
+    products_by_id=products_by_id,
+    warehouse=warehouse,
+    solver_name="gecode"  # ou "chuffed", etc.
+)
+```
+
+#### Utilisation dans `main.py`
+
+Le programme principal peut utiliser MiniZinc via l'option `--minizinc` :
+
+```bash
+# Utiliser l'algorithme glouton (par défaut)
+python main.py
+
+# Utiliser MiniZinc pour l'allocation optimale
+python main.py --minizinc
+
+# Spécifier un solveur MiniZinc particulier
+python main.py --minizinc --solver chuffed
+```
+
+#### Avantages de MiniZinc
+
+- ✅ **Optimisation globale** : Trouve la meilleure solution possible (maximise le nombre de commandes assignées)
+- ✅ **Garantie de respect des contraintes** : Toutes les contraintes sont vérifiées simultanément
+- ✅ **Flexibilité** : Facile d'ajouter de nouvelles contraintes au modèle
+- ✅ **Comparaison de solveurs** : Possibilité de tester différents solveurs (Gecode, Chuffed, etc.)
+
+#### Limitations
+
+- ⚠️ **Temps de résolution** : Peut être plus lent que l'algorithme glouton pour de grandes instances
+- ⚠️ **Dépendance externe** : Nécessite l'installation de MiniZinc
+- ⚠️ **Gestion des chariots** : Simplifiée dans le modèle (vérifiée après résolution)
+
+#### Comparaison Glouton vs MiniZinc
+
+| Critère | Algorithme Glouton | MiniZinc |
+|---------|-------------------|----------|
+| Vitesse | ⚡ Rapide | 🐢 Plus lent |
+| Optimalité | ❌ Sous-optimal | ✅ Optimal |
+| Contraintes | ✅ Toutes vérifiées | ✅ Toutes vérifiées |
+| Complexité | Simple | Modélisation requise |
+
 **Limitations (Jour 1) :**
 - ⚠️ **Pas d'optimisation de tournée** : Ne calcule pas le chemin optimal entre les emplacements
 - ⚠️ **Pas de retour à l'entrée** : Ne compte pas le retour à l'entrée après la dernière collecte

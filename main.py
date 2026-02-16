@@ -26,6 +26,17 @@ from src.loader import (
     parse_agents,
     parse_orders,
 )
+from src.constraints import (
+    can_agent_take_order_with_constraints,
+)
+try:
+    from src.minizinc_solver import (
+        allocate_with_minizinc,
+        check_minizinc_available,
+    )
+    MINIZINC_AVAILABLE = True
+except ImportError:
+    MINIZINC_AVAILABLE = False
 
 
 # =========================
@@ -58,7 +69,7 @@ def enrich_orders(orders: List[Order], products_by_id: Dict[str, Product]) -> No
 
 
 # =========================
-# 3) Allocation naïve First-Fit
+# 3) Allocation avec contraintes (Jour 2)
 # =========================
 
 
@@ -73,23 +84,63 @@ def sort_orders_by_received_time(orders: List[Order]) -> List[Order]:
 #Convertit l'heure de réception en minutes
 #Trie les commandes par ordre chronologique
 
-#Fonction d'allocation First-Fit
-def allocate_first_fit(orders: List[Order], agents: List[Agent]) -> Dict[str, Optional[str]]:
+
+def sort_agents_by_priority(agents: List[Agent]) -> List[Agent]:
     """
+    Trie les agents par priorité : robots d'abord, puis humains, puis chariots.
+    (Jour 2 : stratégie gloutonne améliorée)
+    """
+    def priority(agent: Agent) -> int:
+        if agent.type == "robot":
+            return 0
+        elif agent.type == "human":
+            return 1
+        elif agent.type == "cart":
+            return 2
+        return 3
+    
+    return sorted(agents, key=priority)
+
+
+#Fonction d'allocation First-Fit avec contraintes (Jour 2)
+def allocate_first_fit(
+    orders: List[Order],
+    agents: List[Agent],
+    products_by_id: Dict[str, Product],
+    warehouse: Warehouse
+) -> Dict[str, Optional[str]]:
+    """
+    JOUR 2 : Allocation avec toutes les contraintes dures.
+    Algorithme glouton amélioré :
+    - Pour chaque commande (par ordre d'arrivée)
+    - Tester chaque agent dans l'ordre (robots d'abord)
+    - Vérifier toutes les contraintes
+    - Assigner au premier agent valide
+    
     Retourne: {order_id: agent_id or None}
     """
     assignment: Dict[str, Optional[str]] = {}
+    agents_sorted = sort_agents_by_priority(agents)  # Robots en premier
 
     for order in orders:  # ← Pour chaque commande (par ordre d'arrivée)
         assigned = False
-        for agent in agents:  # ← Parcourt les agents dans l'ordre
-            if agent.can_take(order):  # ← Vérifie la capacité suffisante
+        for agent in agents_sorted:  # ← Parcourt les agents (robots d'abord)
+            # Vérifier toutes les contraintes (Jour 2)
+            if can_agent_take_order_with_constraints(
+                agent=agent,
+                order=order,
+                products_by_id=products_by_id,
+                warehouse=warehouse,
+                restrictions=agent.restrictions,
+                agents=agents,
+                assignment=assignment
+            ):
                 agent.assign(order)
                 assignment[order.id] = agent.id
                 assigned = True
-                break  # ← S'arrête au premier agent qui peut prendre la commande
+                break  # ← S'arrête au premier agent valide
         if not assigned:
-            assignment[order.id] = None  # ← Aucun agent disponible
+            assignment[order.id] = None  # ← Aucun agent disponible respectant les contraintes
 
     return assignment
 
@@ -115,7 +166,7 @@ def compute_total_distance(warehouse: Warehouse, orders: List[Order]) -> int:
 # 5) Évaluation / affichage
 # =========================
 
-def print_report(warehouse: Warehouse, orders: List[Order], agents: List[Agent], assignment: Dict[str, Optional[str]]) -> None:
+def print_report(warehouse: Warehouse, orders: List[Order], agents: List[Agent], assignment: Dict[str, Optional[str]], use_minizinc: bool = False) -> None:
     total = len(orders)
     assigned = sum(1 for oid, aid in assignment.items() if aid is not None)
     unassigned = total - assigned
@@ -123,7 +174,10 @@ def print_report(warehouse: Warehouse, orders: List[Order], agents: List[Agent],
     dist_total = compute_total_distance(warehouse, orders)
 
     print("══════════════════════════════════════")
-    print("JOUR 1 — Allocation naïve (First-Fit)")
+    if use_minizinc:
+        print("JOUR 2 — Allocation optimale avec MiniZinc")
+    else:
+        print("JOUR 2 — Allocation avec contraintes (glouton)")
     print("══════════════════════════════════════")
     print(f"Commandes totales : {total}")
     print(f"Commandes assignées: {assigned}")
@@ -142,7 +196,7 @@ def print_report(warehouse: Warehouse, orders: List[Order], agents: List[Agent],
     print()
 
     if unassigned > 0:
-        print("Commandes non assignées (capacité insuffisante avec ce First-Fit):")
+        print("Commandes non assignées (contraintes non respectées):")
         for oid, aid in assignment.items():
             if aid is None:
                 print(f"- {oid}")
@@ -158,6 +212,8 @@ def main(
     products_path: str = "data/products.json",
     agents_path: str = "data/agents.json",
     orders_path: str = "data/orders.json",
+    use_minizinc: bool = False,
+    solver_name: str = "gecode",
 ) -> None:
     wh_data = load_json(Path(warehouse_path))
     pr_data = load_json(Path(products_path))
@@ -171,12 +227,58 @@ def main(
 
     enrich_orders(orders, products_by_id)
 
-    #Utilisation dans la fonction main First-Fit
+    #Utilisation dans la fonction main avec contraintes (Jour 2)
     orders_sorted = sort_orders_by_received_time(orders)
-    assignment = allocate_first_fit(orders_sorted, agents)
+    
+    # Choisir entre algorithme glouton et MiniZinc
+    if use_minizinc and MINIZINC_AVAILABLE:
+        print("🔧 Utilisation de MiniZinc pour l'allocation optimale...")
+        try:
+            assignment = allocate_with_minizinc(
+                orders_sorted,
+                agents,
+                products_by_id,
+                warehouse,
+                solver_name=solver_name
+            )
+            print("✅ Résolution MiniZinc terminée\n")
+        except Exception as e:
+            print(f"⚠️  Erreur MiniZinc: {e}")
+            print("🔄 Basculement vers l'algorithme glouton...\n")
+            assignment = allocate_first_fit(
+                orders_sorted,
+                agents,
+                products_by_id,
+                warehouse
+            )
+    else:
+        if use_minizinc:
+            print("⚠️  MiniZinc n'est pas disponible. Utilisation de l'algorithme glouton.\n")
+        assignment = allocate_first_fit(
+            orders_sorted,
+            agents,
+            products_by_id,
+            warehouse
+        )
 
-    print_report(warehouse, orders_sorted, agents, assignment)
+    print_report(warehouse, orders_sorted, agents, assignment, use_minizinc=use_minizinc and MINIZINC_AVAILABLE)
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="OptiPick - Allocation optimale des commandes")
+    parser.add_argument(
+        "--minizinc",
+        action="store_true",
+        help="Utiliser MiniZinc pour l'allocation optimale (au lieu de l'algorithme glouton)"
+    )
+    parser.add_argument(
+        "--solver",
+        type=str,
+        default="gecode",
+        help="Solveur MiniZinc à utiliser (gecode, chuffed, etc.)"
+    )
+    args = parser.parse_args()
+    
+    main(use_minizinc=args.minizinc, solver_name=args.solver)

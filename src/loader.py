@@ -70,6 +70,7 @@ def build_agent(raw: dict) -> Agent:
         capacity_volume=float(raw.get("capacity_volume", 0.0)),
         speed=float(raw.get("speed", 0.0)),
         cost_per_hour=float(raw.get("cost_per_hour", 0.0)),
+        restrictions=dict(raw.get("restrictions", {})),  # Charger les restrictions (Jour 2)
     )
     t = base_kwargs["type"]
     if t == "robot":

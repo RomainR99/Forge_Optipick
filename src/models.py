@@ -65,6 +65,7 @@ class Agent:
     capacity_volume: float   # Capacité maximale en volume (dm³)
     speed: float             # Vitesse de déplacement (m/s)
     cost_per_hour: float     # Coût d'utilisation par heure (€)
+    restrictions: Dict = field(default_factory=dict)  # Restrictions spécifiques (Jour 2)
 
     # Attributs d'Affectation (Jour 1)
     assigned_orders: List[str] = field(default_factory=list) #liste des IDs des commandes assignées à cet agent
