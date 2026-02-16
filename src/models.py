@@ -59,28 +59,32 @@ class Order:
 
 @dataclass
 class Agent:
-    id: str
-    type: str  # "robot" | "human" | "cart"
-    capacity_weight: float
-    capacity_volume: float
-    speed: float
-    cost_per_hour: float
+    id: str                    # Identifiant unique (ex: "R1", "H1", "C1")
+    type: str                 # Type d'agent : "robot", "human" ou "cart"
+    capacity_weight: float    # Capacité maximale en poids (kg)
+    capacity_volume: float   # Capacité maximale en volume (dm³)
+    speed: float             # Vitesse de déplacement (m/s)
+    cost_per_hour: float     # Coût d'utilisation par heure (€)
 
-    # Affectation (Jour 1)
-    assigned_orders: List[str] = field(default_factory=list)
-    used_weight: float = 0.0
-    used_volume: float = 0.0
+    # Attributs d'Affectation (Jour 1)
+    assigned_orders: List[str] = field(default_factory=list) #liste des IDs des commandes assignées à cet agent
+    #field(default_factory=list) : initialise une nouvelle liste vide pour chaque instance
+    used_weight: float = 0.0 # poids total actuellement transporté (kg)
+    used_volume: float = 0.0 # volume total actuellement transporté (dm³)
 
-    def can_take(self, order: Order) -> bool:
+    # Ces valeurs sont mises à jour lors de l'assignation de commandes.
+
+    # Vérifie si l'agent peut prendre une commande.
+    def can_take(self, order: Order) -> bool: # Retourne True si les deux conditions sont vraies, sinon False
         return (
-            self.used_weight + order.total_weight <= self.capacity_weight
-            and self.used_volume + order.total_volume <= self.capacity_volume
+            self.used_weight + order.total_weight <= self.capacity_weight # Condition poids
+            and self.used_volume + order.total_volume <= self.capacity_volume # Condition volume 
         )
-
+    # Assigne une commande à l'agent et met à jour les compteurs.
     def assign(self, order: Order) -> None:
-        self.assigned_orders.append(order.id)
-        self.used_weight += order.total_weight
-        self.used_volume += order.total_volume
+        self.assigned_orders.append(order.id) # Ajoute l'ID de la commande à assigned_orders
+        self.used_weight += order.total_weight # Ajoute le poids de la commande à used_weight
+        self.used_volume += order.total_volume # Ajoute le volume de la commande à used_volume
 
 
 # Sous-classes (Jour 1 : identiques à Agent, mais utiles pour la suite)

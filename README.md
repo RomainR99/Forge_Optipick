@@ -576,6 +576,275 @@ locations_dict = {loc1: "Zone A", loc2: "Zone B"}
 # loc1.x = 10  # Raises FrozenInstanceError
 ```
 
+#### Classe Agent - Détails
+
+La classe `Agent` est au cœur du système d'allocation. Elle représente un agent (robot, humain ou chariot) et gère son état de chargement.
+
+**Structure de la classe :**
+
+```python
+@dataclass
+class Agent:
+    id: str                    # Identifiant unique (ex: "R1", "H1", "C1")
+    type: str                 # Type d'agent : "robot", "human" ou "cart"
+    capacity_weight: float    # Capacité maximale en poids (kg)
+    capacity_volume: float   # Capacité maximale en volume (dm³)
+    speed: float             # Vitesse de déplacement (m/s)
+    cost_per_hour: float     # Coût d'utilisation par heure (€)
+    
+    # Attributs d'affectation (mis à jour dynamiquement)
+    assigned_orders: List[str] = field(default_factory=list)
+    used_weight: float = 0.0
+    used_volume: float = 0.0
+```
+
+**Attributs d'affectation :**
+
+- **`assigned_orders`** : Liste des IDs des commandes assignées à cet agent
+  - `field(default_factory=list)` : Initialise une nouvelle liste vide pour chaque instance
+  - Permet de suivre quelles commandes sont assignées à quel agent
+  
+- **`used_weight`** : Poids total actuellement transporté (en kg)
+  - Commence à 0.0 et augmente à chaque assignation
+  
+- **`used_volume`** : Volume total actuellement transporté (en dm³)
+  - Commence à 0.0 et augmente à chaque assignation
+
+**Méthode `can_take()` :**
+
+```python
+def can_take(self, order: Order) -> bool:
+    return (
+        self.used_weight + order.total_weight <= self.capacity_weight
+        and self.used_volume + order.total_volume <= self.capacity_volume
+    )
+```
+
+**Rôle :** Vérifie si l'agent peut prendre une commande supplémentaire.
+
+**Vérifications :**
+- **Condition poids** : `used_weight + order.total_weight <= capacity_weight`
+- **Condition volume** : `used_volume + order.total_volume <= capacity_volume`
+- Retourne `True` seulement si **les deux conditions** sont respectées
+
+**Exemple :**
+```python
+robot = Agent(id="R1", capacity_weight=20, capacity_volume=30, ...)
+robot.used_weight = 15.0  # Déjà 15kg chargés
+order = Order(total_weight=8.0, total_volume=10.0, ...)
+
+robot.can_take(order)  # False car 15 + 8 = 23 > 20 (capacité dépassée)
+```
+
+**Méthode `assign()` :**
+
+```python
+def assign(self, order: Order) -> None:
+    self.assigned_orders.append(order.id)
+    self.used_weight += order.total_weight
+    self.used_volume += order.total_volume
+```
+
+**Rôle :** Assigne une commande à l'agent et met à jour les compteurs.
+
+**Actions :**
+1. Ajoute l'ID de la commande à `assigned_orders`
+2. Ajoute le poids de la commande à `used_weight`
+3. Ajoute le volume de la commande à `used_volume`
+
+**Exemple :**
+```python
+robot = Agent(id="R1", capacity_weight=20, capacity_volume=30, ...)
+order = Order(id="Order_001", total_weight=5.0, total_volume=8.0, ...)
+
+robot.assign(order)
+# Maintenant :
+# robot.assigned_orders = ["Order_001"]
+# robot.used_weight = 5.0
+# robot.used_volume = 8.0
+```
+
+**Utilisation dans l'algorithme First-Fit :**
+
+```python
+for order in orders:
+    for agent in agents:
+        if agent.can_take(order):  # ← Vérifie la capacité
+            agent.assign(order)    # ← Assigne et met à jour les compteurs
+            break
+```
+
+#### Module loader.py - Détails
+
+Le module `loader.py` est responsable du chargement et de la conversion des fichiers JSON en objets Python typés.
+
+**Vue d'ensemble :**
+
+Ce module transforme les données JSON brutes en objets Python utilisables par le reste du programme. Il sépare le chargement des données de la logique métier.
+
+**Fonction 1 : `load_json()`**
+
+```python
+def load_json(path: Path) -> dict | list:
+    """Charge un fichier JSON et retourne son contenu."""
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+```
+
+**Rôle :** Fonction générique qui charge n'importe quel fichier JSON.
+
+- **Paramètre** : `path` (chemin du fichier)
+- **Retourne** : Contenu JSON (dictionnaire ou liste)
+- **Utilisation** : Fonction de base utilisée par toutes les autres fonctions de parsing
+
+**Fonction 2 : `parse_warehouse()`**
+
+```python
+def parse_warehouse(data: dict) -> Warehouse:
+    width = data["dimensions"]["width"]
+    height = data["dimensions"]["height"]
+    
+    zones: Dict[str, List[Location]] = {}
+    for zname, zinfo in data.get("zones", {}).items():
+        coords = zinfo.get("coords", [])
+        zones[zname] = [Location(x=c[0], y=c[1]) for c in coords]
+    
+    entry = data.get("entry_point", [0, 0])
+    entry_point = Location(x=entry[0], y=entry[1])
+    
+    return Warehouse(width=width, height=height, zones=zones, entry_point=entry_point)
+```
+
+**Rôle :** Convertit les données JSON de l'entrepôt en objet `Warehouse`.
+
+**Étapes :**
+1. Extraction des dimensions (largeur et hauteur)
+2. Parsing des zones : convertit chaque coordonnée `[x, y]` en objet `Location`
+3. Point d'entrée : crée un `Location` pour l'entrée (par défaut [0, 0])
+4. Création de l'objet `Warehouse` avec toutes les données
+
+**Fonction 3 : `parse_products()`**
+
+```python
+def parse_products(data: list) -> Dict[str, Product]:
+    products: Dict[str, Product] = {}
+    for p in data:
+        pid = p["id"]
+        loc = p.get("location", [0, 0])
+        products[pid] = Product(
+            id=pid,
+            name=p.get("name", pid),
+            category=p.get("category", "unknown"),
+            weight=float(p.get("weight", 0.0)),
+            volume=float(p.get("volume", 0.0)),
+            location=Location(loc[0], loc[1]),
+            frequency=p.get("frequency", "unknown"),
+            fragile=bool(p.get("fragile", False)),
+            incompatible_with=list(p.get("incompatible_with", [])),
+        )
+    return products
+```
+
+**Rôle :** Convertit une liste JSON de produits en dictionnaire `{product_id: Product}`.
+
+**Points importants :**
+- Retourne un **dictionnaire** indexé par ID pour accès rapide (O(1))
+- Utilise `.get()` avec valeurs par défaut pour gérer les champs optionnels
+- Convertit les types (float, bool, list)
+- Crée un objet `Location` à partir de `[x, y]`
+
+**Fonction 4 : `build_agent()`**
+
+```python
+def build_agent(raw: dict) -> Agent:
+    base_kwargs = dict(
+        id=raw["id"],
+        type=raw.get("type", "unknown"),
+        capacity_weight=float(raw.get("capacity_weight", 0.0)),
+        capacity_volume=float(raw.get("capacity_volume", 0.0)),
+        speed=float(raw.get("speed", 0.0)),
+        cost_per_hour=float(raw.get("cost_per_hour", 0.0)),
+    )
+    t = base_kwargs["type"]
+    if t == "robot":
+        return Robot(**base_kwargs)
+    if t == "human":
+        return Human(**base_kwargs)
+    if t == "cart":
+        return Cart(**base_kwargs)
+    return Agent(**base_kwargs)
+```
+
+**Rôle :** Crée un agent du bon type (`Robot`, `Human`, ou `Cart`) selon le type dans les données JSON.
+
+**Fonctionnement :**
+1. Prépare les arguments communs à tous les types d'agents
+2. Détecte le type d'agent
+3. Instancie la bonne sous-classe (`Robot`, `Human`, ou `Cart`)
+
+**Fonction 5 : `parse_agents()`**
+
+```python
+def parse_agents(data: list) -> List[Agent]:
+    return [build_agent(a) for a in data]
+```
+
+**Rôle :** Convertit une liste JSON d'agents en liste d'objets `Agent`.
+
+- Utilise une list comprehension pour traiter tous les agents
+- Appelle `build_agent()` pour chaque agent JSON
+
+**Fonction 6 : `parse_orders()`**
+
+```python
+def parse_orders(data: list) -> List[Order]:
+    orders: List[Order] = []
+    for o in data:
+        items = [
+            OrderItem(product_id=it["product_id"], quantity=int(it["quantity"]))
+            for it in o.get("items", [])
+        ]
+        orders.append(
+            Order(
+                id=o["id"],
+                received_time=o.get("received_time", "00:00"),
+                deadline=o.get("deadline", "23:59"),
+                priority=o.get("priority", "standard"),
+                items=items,
+            )
+        )
+    return orders
+```
+
+**Rôle :** Convertit une liste JSON de commandes en liste d'objets `Order`.
+
+**Étapes :**
+1. Parsing des items : crée des objets `OrderItem` pour chaque produit dans la commande
+2. Création de la commande : crée un objet `Order` avec tous ses items
+
+**Utilisation dans `main.py` :**
+
+```python
+# Chargement des fichiers JSON
+wh_data = load_json(Path("data/warehouse.json"))
+pr_data = load_json(Path("data/products.json"))
+ag_data = load_json(Path("data/agents.json"))
+or_data = load_json(Path("data/orders.json"))
+
+# Conversion en objets Python
+warehouse = parse_warehouse(wh_data)
+products_by_id = parse_products(pr_data)
+agents = parse_agents(ag_data)
+orders = parse_orders(or_data)
+```
+
+**Avantages de cette architecture :**
+- ✅ **Séparation des responsabilités** : Le chargement est séparé de la logique métier
+- ✅ **Réutilisabilité** : Les fonctions peuvent être réutilisées ailleurs
+- ✅ **Testabilité** : Chaque fonction peut être testée indépendamment
+- ✅ **Maintenabilité** : Si le format JSON change, seul `loader.py` doit être modifié
+- ✅ **Gestion d'erreurs** : Utilisation de `.get()` avec valeurs par défaut pour éviter les erreurs
+
 ## 📈 Métriques de Performance
 
 Le système évalue les solutions sur :
