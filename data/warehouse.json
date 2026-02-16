@@ -1,0 +1,12 @@
+{
+    "dimensions": {"width": 10, "height": 8},
+    "zones": {
+      "A": {"name": "Electronics", "coords": [[1,0], [1,1]]},
+      "B": {"name": "Books", "coords": [[5,0], [5,1]]},
+      "C": {"name": "Food", "coords": [[8,0], [8,1]]},
+      "D": {"name": "Chemical", "coords": [[1,6], [1,7]]},
+      "E": {"name": "Textile", "coords": [[0,0], [0,3]]}
+    },
+    "entry_point": [0, 0]
+  }
+  
