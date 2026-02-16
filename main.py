@@ -39,18 +39,18 @@ def enrich_orders(orders: List[Order], products_by_id: Dict[str, Product]) -> No
         locs: List[Location] = []
         seen: set[Tuple[int, int]] = set()
 
-        for it in order.items:
-            p = products_by_id.get(it.product_id)
-            if p is None:
-                raise KeyError(f"Produit introuvable: {it.product_id} (dans {order.id})")
+        for order_item in order.items:
+            product = products_by_id.get(order_item.product_id)
+            if product is None:
+                raise KeyError(f"Produit introuvable: {order_item.product_id} (dans {order.id})")
 
-            total_w += p.weight * it.quantity
-            total_v += p.volume * it.quantity
+            total_w += product.weight * order_item.quantity
+            total_v += product.volume * order_item.quantity
 
-            key = (p.location.x, p.location.y)
+            key = (product.location.x, product.location.y)
             if key not in seen:
                 seen.add(key)
-                locs.append(p.location)
+                locs.append(product.location)
 
         order.total_weight = total_w
         order.total_volume = total_v
@@ -69,7 +69,7 @@ def sort_orders_by_received_time(orders: List[Order]) -> List[Order]:
         h, m = hhmm.split(":")
         return int(h) * 60 + int(m)
 
-    return sorted(orders, key=lambda o: to_minutes(o.received_time))
+    return sorted(orders, key=lambda order: to_minutes(order.received_time))
 #Convertit l'heure de réception en minutes
 #Trie les commandes par ordre chronologique
 
@@ -108,7 +108,7 @@ def estimate_order_distance(warehouse: Warehouse, order: Order) -> int:
 
 #Fonction de calcul de la distance totale 
 def compute_total_distance(warehouse: Warehouse, orders: List[Order]) -> int:
-    return sum(estimate_order_distance(warehouse, o) for o in orders)
+    return sum(estimate_order_distance(warehouse, order) for order in orders)
 
 
 # =========================
@@ -117,7 +117,7 @@ def compute_total_distance(warehouse: Warehouse, orders: List[Order]) -> int:
 
 def print_report(warehouse: Warehouse, orders: List[Order], agents: List[Agent], assignment: Dict[str, Optional[str]]) -> None:
     total = len(orders)
-    assigned = sum(1 for oid, aid in assignment.items() if aid is not None)
+    assigned = sum(1 for order_id, agent_id in assignment.items() if agent_id is not None)
     unassigned = total - assigned
 
     dist_total = compute_total_distance(warehouse, orders)
@@ -132,20 +132,20 @@ def print_report(warehouse: Warehouse, orders: List[Order], agents: List[Agent],
     print()
 
     print("Détail par agent:")
-    for a in agents:
-        util_w = 0.0 if a.capacity_weight == 0 else (a.used_weight / a.capacity_weight) * 100
-        util_v = 0.0 if a.capacity_volume == 0 else (a.used_volume / a.capacity_volume) * 100
-        print(f"- {a.id} ({a.type})")
-        print(f"  commandes: {len(a.assigned_orders)} -> {a.assigned_orders}")
-        print(f"  poids: {a.used_weight:.2f}/{a.capacity_weight:.2f} kg ({util_w:.1f}%)")
-        print(f"  volume: {a.used_volume:.2f}/{a.capacity_volume:.2f} dm³ ({util_v:.1f}%)")
+    for agent in agents:
+        util_w = 0.0 if agent.capacity_weight == 0 else (agent.used_weight / agent.capacity_weight) * 100
+        util_v = 0.0 if agent.capacity_volume == 0 else (agent.used_volume / agent.capacity_volume) * 100
+        print(f"- {agent.id} ({agent.type})")
+        print(f"  commandes: {len(agent.assigned_orders)} -> {agent.assigned_orders}")
+        print(f"  poids: {agent.used_weight:.2f}/{agent.capacity_weight:.2f} kg ({util_w:.1f}%)")
+        print(f"  volume: {agent.used_volume:.2f}/{agent.capacity_volume:.2f} dm³ ({util_v:.1f}%)")
     print()
 
     if unassigned > 0:
         print("Commandes non assignées (capacité insuffisante avec ce First-Fit):")
-        for oid, aid in assignment.items():
-            if aid is None:
-                print(f"- {oid}")
+        for order_id, agent_id in assignment.items():
+            if agent_id is None:
+                print(f"- {order_id}")
         print()
 
 

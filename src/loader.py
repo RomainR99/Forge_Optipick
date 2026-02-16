@@ -21,8 +21,8 @@ from models import (
 
 def load_json(path: Path) -> dict | list:
     """Charge un fichier JSON et retourne son contenu."""
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
+    with path.open("r", encoding="utf-8") as file_handle:
+        return json.load(file_handle)
 
 
 def parse_warehouse(data: dict) -> Warehouse:
@@ -31,9 +31,9 @@ def parse_warehouse(data: dict) -> Warehouse:
     height = data["dimensions"]["height"]
 
     zones: Dict[str, List[Location]] = {}
-    for zname, zinfo in data.get("zones", {}).items():
-        coords = zinfo.get("coords", [])
-        zones[zname] = [Location(x=c[0], y=c[1]) for c in coords]
+    for zone_name, zone_info in data.get("zones", {}).items():
+        coords = zone_info.get("coords", [])
+        zones[zone_name] = [Location(x=coord[0], y=coord[1]) for coord in coords]
 
     entry = data.get("entry_point", [0, 0])
     entry_point = Location(x=entry[0], y=entry[1])
@@ -44,19 +44,19 @@ def parse_warehouse(data: dict) -> Warehouse:
 def parse_products(data: list) -> Dict[str, Product]:
     """Parse les données JSON des produits."""
     products: Dict[str, Product] = {}
-    for p in data:
-        pid = p["id"]
-        loc = p.get("location", [0, 0])
-        products[pid] = Product(
-            id=pid,
-            name=p.get("name", pid),
-            category=p.get("category", "unknown"),
-            weight=float(p.get("weight", 0.0)),
-            volume=float(p.get("volume", 0.0)),
-            location=Location(loc[0], loc[1]),
-            frequency=p.get("frequency", "unknown"),
-            fragile=bool(p.get("fragile", False)),
-            incompatible_with=list(p.get("incompatible_with", [])),
+    for product_data in data:
+        product_id = product_data["id"]
+        location_coords = product_data.get("location", [0, 0])
+        products[product_id] = Product(
+            id=product_id,
+            name=product_data.get("name", product_id),
+            category=product_data.get("category", "unknown"),
+            weight=float(product_data.get("weight", 0.0)),
+            volume=float(product_data.get("volume", 0.0)),
+            location=Location(location_coords[0], location_coords[1]),
+            frequency=product_data.get("frequency", "unknown"),
+            fragile=bool(product_data.get("fragile", False)),
+            incompatible_with=list(product_data.get("incompatible_with", [])),
         )
     return products
 
@@ -71,35 +71,35 @@ def build_agent(raw: dict) -> Agent:
         speed=float(raw.get("speed", 0.0)),
         cost_per_hour=float(raw.get("cost_per_hour", 0.0)),
     )
-    t = base_kwargs["type"]
-    if t == "robot":
+    agent_type = base_kwargs["type"]
+    if agent_type == "robot":
         return Robot(**base_kwargs)
-    if t == "human":
+    if agent_type == "human":
         return Human(**base_kwargs)
-    if t == "cart":
+    if agent_type == "cart":
         return Cart(**base_kwargs)
     return Agent(**base_kwargs)
 
 
 def parse_agents(data: list) -> List[Agent]:
     """Parse les données JSON des agents."""
-    return [build_agent(a) for a in data]
+    return [build_agent(agent_data) for agent_data in data]
 
 
 def parse_orders(data: list) -> List[Order]:
     """Parse les données JSON des commandes."""
     orders: List[Order] = []
-    for o in data:
+    for order_data in data:
         items = [
-            OrderItem(product_id=it["product_id"], quantity=int(it["quantity"]))
-            for it in o.get("items", [])
+            OrderItem(product_id=item_data["product_id"], quantity=int(item_data["quantity"]))
+            for item_data in order_data.get("items", [])
         ]
         orders.append(
             Order(
-                id=o["id"],
-                received_time=o.get("received_time", "00:00"),
-                deadline=o.get("deadline", "23:59"),
-                priority=o.get("priority", "standard"),
+                id=order_data["id"],
+                received_time=order_data.get("received_time", "00:00"),
+                deadline=order_data.get("deadline", "23:59"),
+                priority=order_data.get("priority", "standard"),
                 items=items,
             )
         )
