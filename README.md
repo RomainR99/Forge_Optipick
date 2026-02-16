@@ -205,15 +205,53 @@ Chaque commande contient :
 
 ## 🛠️ Technologies Utilisées
 
-### Bibliothèques Python Recommandées
+### Installation de l'Environnement Virtuel
+
+**Méthode 1 : Script automatique (recommandé)**
 ```bash
-pip install ortools numpy pandas matplotlib seaborn networkx
+cd optipick
+./setup_venv.sh
 ```
 
-- **OR-Tools** : Optimisation (CP-SAT, Routing)
-- **NumPy/Pandas** : Traitement de données
-- **Matplotlib/Seaborn** : Visualisation
-- **NetworkX** : Graphes (optionnel)
+**Méthode 2 : Installation manuelle**
+```bash
+cd optipick
+
+# Créer l'environnement virtuel
+python3 -m venv venv
+
+# Activer l'environnement virtuel
+source venv/bin/activate  # Sur macOS/Linux
+# ou
+venv\Scripts\activate     # Sur Windows
+
+# Installer les dépendances
+pip install --upgrade pip
+pip install -r requirements.txt
+pip install minizinc
+```
+
+**Activer l'environnement virtuel :**
+```bash
+source venv/bin/activate  # macOS/Linux
+```
+
+**Désactiver l'environnement virtuel :**
+```bash
+deactivate
+```
+
+### Bibliothèques Python
+
+Le fichier `requirements.txt` contient toutes les dépendances nécessaires :
+
+- **OR-Tools** (>=9.8) : Optimisation (CP-SAT, Routing)
+- **NumPy** (>=1.24.0) : Calculs numériques
+- **Pandas** (>=2.0.0) : Traitement de données
+- **Matplotlib** (>=3.7.0) : Visualisation
+- **Seaborn** (>=0.12.0) : Visualisation statistique
+- **NetworkX** (>=3.1) : Manipulation de graphes
+- **MiniZinc** (>=0.6.0) : Modélisation par contraintes
 
 ## 📁 Fichiers de Données
 
@@ -574,6 +612,94 @@ locations_dict = {loc1: "Zone A", loc2: "Zone B"}
 
 # ❌ Modification impossible (erreur)
 # loc1.x = 10  # Raises FrozenInstanceError
+```
+
+**Méthode `manhattan()` - Distance de Manhattan :**
+
+La classe `Location` possède une méthode `manhattan()` pour calculer la distance entre deux emplacements.
+
+```python
+def manhattan(self, other: "Location") -> int:
+    return abs(self.x - other.x) + abs(self.y - other.y)
+```
+
+**Rôle :** Calcule la distance de Manhattan entre deux emplacements dans la grille de l'entrepôt.
+
+**Formule :** Distance = `|x₁ - x₂| + |y₁ - y₂|`
+
+Où :
+- `self.x` et `self.y` : Coordonnées du premier point
+- `other.x` et `other.y` : Coordonnées du second point
+- `abs()` : Fonction valeur absolue
+
+**Pourquoi "Manhattan" ?**
+
+Nommée ainsi car elle correspond aux déplacements dans un quadrillage (comme les rues de Manhattan) : on ne peut se déplacer qu'horizontalement ou verticalement, pas en diagonale.
+
+**Exemple visuel :**
+
+```
+    0   1   2   3   4
+  ┌───┬───┬───┬───┬───┐
+0 │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┤
+1 │ A │   │   │   │   │  A = (1, 1)
+  ├───┼───┼───┼───┼───┤
+2 │   │   │   │   │   │
+  ├───┼───┼───┼───┼───┤
+3 │   │   │   │ B │   │  B = (3, 3)
+  └───┴───┴───┴───┴───┘
+
+Distance A → B :
+|1-3| + |1-3| = 2 + 2 = 4 cases
+```
+
+**Exemple de code :**
+
+```python
+# Création de deux emplacements
+loc1 = Location(x=1, y=1)  # Zone A
+loc2 = Location(x=3, y=3)   # Zone B
+
+# Calcul de la distance
+distance = loc1.manhattan(loc2)
+# distance = |1-3| + |1-3| = 2 + 2 = 4
+```
+
+**Pourquoi cette distance dans le projet ?**
+
+- ✅ **Modélise correctement** les déplacements dans une grille (pas de diagonale)
+- ✅ **Plus simple** que la distance euclidienne
+- ✅ **Correspond aux contraintes réelles** d'un entrepôt (allées horizontales/verticales)
+
+**Comparaison avec d'autres distances :**
+
+**Distance euclidienne** (ligne droite) :
+```
+√((x₁-x₂)² + (y₁-y₂)²) = √(2² + 2²) = √8 ≈ 2.83
+```
+
+**Distance de Manhattan** (en L) :
+```
+|x₁-x₂| + |y₁-y₂| = 2 + 2 = 4
+```
+
+Dans un entrepôt, la distance de Manhattan est plus réaliste car les agents suivent les allées.
+
+**Utilisation dans le projet :**
+
+Cette méthode est utilisée pour :
+- Calculer la distance entre l'entrée et un emplacement de produit
+- Estimer la distance totale d'une tournée
+- Optimiser les parcours (Jour 3 : TSP)
+
+**Exemple dans le code :**
+```python
+entry = warehouse.entry_point  # Location(0, 0)
+product_loc = Location(5, 3)
+
+distance = entry.manhattan(product_loc)
+# distance = |0-5| + |0-3| = 5 + 3 = 8 cases
 ```
 
 #### Classe Agent - Détails
