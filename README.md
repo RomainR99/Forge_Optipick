@@ -308,6 +308,107 @@ python main_day1.py
 - **optimization.py** : Modèle CSP avec OR-Tools
 - **visualization.py** : Visualisation des résultats
 
+#### Modèles et Dataclasses
+
+Le projet utilise les **dataclasses Python** pour modéliser les entités (Warehouse, Product, Agent, Order, Location).
+
+**`@dataclass` - Décorateur Python :**
+
+Le décorateur `@dataclass` (introduit dans Python 3.7) simplifie la création de classes qui servent principalement à stocker des données. Il génère automatiquement des méthodes spéciales basées sur les annotations de type.
+
+**Sans `@dataclass` (code verbeux) :**
+```python
+class Location:
+    def __init__(self, x: int, y: int):
+        self.x = x
+        self.y = y
+    
+    def __repr__(self):
+        return f"Location(x={self.x}, y={self.y})"
+    
+    def __eq__(self, other):
+        if not isinstance(other, Location):
+            return False
+        return self.x == other.x and self.y == other.y
+```
+
+**Avec `@dataclass` (code concis) :**
+```python
+@dataclass
+class Location:
+    x: int
+    y: int
+```
+
+**Méthodes générées automatiquement par `@dataclass` :**
+1. **`__init__()`** : Constructeur avec tous les champs
+2. **`__repr__()`** : Représentation lisible de l'objet
+3. **`__eq__()`** : Comparaison d'égalité basée sur les valeurs des champs
+4. **`__hash__()`** : Si `frozen=True`, permet d'utiliser l'objet comme clé
+
+**Avantages de `@dataclass` :**
+- ✅ **Moins de code** : Évite d'écrire manuellement `__init__`, `__repr__`, `__eq__`
+- ✅ **Type hints** : Encourage l'utilisation d'annotations de type
+- ✅ **Lisibilité** : Code plus clair et maintenable
+- ✅ **Valeurs par défaut** : Support facile des valeurs par défaut avec `field()`
+- ✅ **Ordre des champs** : Respecte l'ordre de déclaration
+
+**Exemple complet dans le projet :**
+```python
+@dataclass
+class Product:
+    id: str
+    name: str
+    category: str
+    weight: float
+    volume: float
+    location: Location
+    frequency: str = "unknown"  # Valeur par défaut
+    fragile: bool = False
+    incompatible_with: List[str] = field(default_factory=list)  # Liste vide par défaut
+```
+
+**`frozen=True` dans les dataclasses :**
+
+Le paramètre `frozen=True` rend les instances de la classe **immuables** (non modifiables) après leur création.
+
+**Exemple :**
+```python
+@dataclass(frozen=True)
+class Location:
+    x: int
+    y: int
+    
+    def manhattan(self, other: "Location") -> int:
+        return abs(self.x - other.x) + abs(self.y - other.y)
+```
+
+**Avantages de `frozen=True` :**
+1. **Sécurité** : Empêche les modifications accidentelles des coordonnées
+2. **Hashable** : Les objets peuvent être utilisés comme clés dans des dictionnaires ou dans des sets
+3. **Thread-safe** : Pas de risque de modification concurrente
+4. **Sémantique claire** : Indique que l'objet représente une valeur fixe
+
+**Dans le projet OptiPick :**
+- `Location` est `frozen=True` car les coordonnées ne doivent jamais changer après création
+- Les autres classes (`Warehouse`, `Product`, `Agent`, `Order`) ne sont pas frozen car elles peuvent être modifiées (ex: `Agent.used_weight`, `Order.total_weight`)
+
+**Exemple d'utilisation :**
+```python
+# Création d'une location
+loc1 = Location(x=5, y=3)
+
+# ✅ Utilisation normale
+loc2 = Location(x=7, y=2)
+distance = loc1.manhattan(loc2)  # Calcule la distance
+
+# ✅ Utilisation comme clé dans un dictionnaire (grâce à frozen=True)
+locations_dict = {loc1: "Zone A", loc2: "Zone B"}
+
+# ❌ Modification impossible (erreur)
+# loc1.x = 10  # Raises FrozenInstanceError
+```
+
 ## 📈 Métriques de Performance
 
 Le système évalue les solutions sur :
