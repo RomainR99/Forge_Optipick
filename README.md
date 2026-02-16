@@ -308,6 +308,173 @@ python main_day1.py
 - **optimization.py** : Modèle CSP avec OR-Tools
 - **visualization.py** : Visualisation des résultats
 
+#### Algorithmes Principaux (Jour 1)
+
+**1. Allocation Naïve First-Fit**
+
+L'allocation First-Fit est une stratégie simple qui assigne chaque commande au premier agent ayant la capacité suffisante.
+
+**Emplacement dans le code :** `main.py` - Section 3 (lignes 141-171)
+
+**Fonctionnement :**
+```python
+def allocate_first_fit(orders: List[Order], agents: List[Agent]) -> Dict[str, Optional[str]]:
+    assignment: Dict[str, Optional[str]] = {}
+    
+    for order in orders:  # ← Pour chaque commande (par ordre d'arrivée)
+        assigned = False
+        for agent in agents:  # ← Parcourt les agents dans l'ordre
+            if agent.can_take(order):  # ← Vérifie la capacité suffisante
+                agent.assign(order)
+                assignment[order.id] = agent.id
+                assigned = True
+                break  # ← S'arrête au premier agent qui peut prendre la commande
+        if not assigned:
+            assignment[order.id] = None  # ← Aucun agent disponible
+    
+    return assignment
+```
+
+**Étapes de l'algorithme :**
+1. **Tri des commandes** : Les commandes sont triées par heure de réception (`sort_orders_by_received_time`)
+2. **Parcours séquentiel** : Pour chaque commande, dans l'ordre chronologique
+3. **Recherche du premier agent disponible** : Parcourt les agents dans l'ordre jusqu'à trouver un agent avec capacité suffisante
+4. **Assignation** : Assigne la commande au premier agent trouvé
+5. **Gestion des non-assignées** : Si aucun agent ne peut prendre la commande, elle reste non assignée
+
+**Caractéristiques :**
+- ✅ **Simple et rapide** : Complexité O(n × m) où n = nombre de commandes, m = nombre d'agents
+- ✅ **Déterministe** : Même résultat pour les mêmes données
+- ⚠️ **Non optimale** : Ne cherche pas la meilleure allocation globale
+- ⚠️ **Ignore les restrictions** : Pour l'instant, ne vérifie que la capacité (poids/volume)
+
+**Note :** Cette version ignore les restrictions (robots, incompatibilités, etc.) pour l'instant. Ces vérifications seront ajoutées au Jour 2.
+
+**2. Calcul de Distance Totale (Estimation)**
+
+Le calcul de distance totale est une **estimation simple** qui additionne les distances entre l'entrée et chaque emplacement unique de chaque commande.
+
+**Emplacement dans le code :** `main.py` - Section 4 (lignes 174-188)
+
+**Fonctionnement :**
+```python
+def estimate_order_distance(warehouse: Warehouse, order: Order) -> int:
+    """
+    Estimation simple: somme des distances entrée <-> emplacement.
+    (Pas de tournée optimisée, juste un proxy).
+    """
+    entry = warehouse.entry_point
+    return sum(entry.manhattan(loc) for loc in order.unique_locations)
+
+def compute_total_distance(warehouse: Warehouse, orders: List[Order]) -> int:
+    return sum(estimate_order_distance(warehouse, o) for o in orders)
+```
+
+**Méthode de calcul :**
+- **Distance Manhattan** : `|x₁-x₂| + |y₁-y₂|` (distance en L, pas en ligne droite)
+- **Pour chaque commande** : Additionne les distances entre l'entrée (0,0) et chaque emplacement unique
+- **Distance totale** : Somme des distances de toutes les commandes
+
+**Exemple :**
+```
+Commande avec produits aux emplacements : (3,2), (5,1), (3,2)
+Emplacements uniques : (3,2), (5,1)
+Distance entrée → (3,2) : |0-3| + |0-2| = 5
+Distance entrée → (5,1) : |0-5| + |0-1| = 6
+Distance totale pour cette commande : 5 + 6 = 11
+```
+
+**Limitations (Jour 1) :**
+- ⚠️ **Pas d'optimisation de tournée** : Ne calcule pas le chemin optimal entre les emplacements
+- ⚠️ **Pas de retour à l'entrée** : Ne compte pas le retour à l'entrée après la dernière collecte
+- ⚠️ **Estimation** : C'est une approximation, pas la vraie distance parcourue
+
+**Amélioration prévue (Jour 3) :**
+- Optimisation TSP (Traveling Salesman Problem) pour calculer le chemin optimal
+- Prise en compte du retour à l'entrée
+- Calcul de la distance réelle parcourue par chaque agent
+
+**3. Évaluation et Affichage des Résultats**
+
+La fonction d'évaluation calcule et affiche les métriques de performance du système.
+
+**Emplacement dans le code :** `main.py` - Section 5 (lignes 195-230)
+
+**Fonction principale :** `print_report()`
+
+**Métriques calculées et affichées :**
+
+**1. Nombre de commandes assignées (lignes 200-202) :**
+```python
+total = len(orders)  # Nombre total de commandes
+assigned = sum(1 for oid, aid in assignment.items() if aid is not None)  # Commandes assignées
+unassigned = total - assigned  # Commandes non assignées
+```
+- Affiche le nombre total de commandes
+- Affiche le nombre de commandes assignées avec succès
+- Affiche le nombre de commandes non assignées (capacité insuffisante)
+
+**2. Distance totale estimée (ligne 204) :**
+```python
+dist_total = compute_total_distance(warehouse, orders)
+```
+- Calcule la distance totale estimée en utilisant la fonction de la section 4
+- Affiche le résultat comme "Distance totale estimée (proxy)"
+
+**3. Utilisation de chaque agent (lignes 215-222) :**
+```python
+print("Détail par agent:")
+for a in agents:
+    util_w = (a.used_weight / a.capacity_weight) * 100  # % utilisation poids
+    util_v = (a.used_volume / a.capacity_volume) * 100   # % utilisation volume
+    print(f"- {a.id} ({a.type})")
+    print(f"  commandes: {len(a.assigned_orders)} -> {a.assigned_orders}")
+    print(f"  poids: {a.used_weight:.2f}/{a.capacity_weight:.2f} kg ({util_w:.1f}%)")
+    print(f"  volume: {a.used_volume:.2f}/{a.capacity_volume:.2f} dm³ ({util_v:.1f}%)")
+```
+
+**Pour chaque agent, affiche :**
+- **ID et type** : Identifiant et type d'agent (robot, human, cart)
+- **Commandes assignées** : Nombre et liste des IDs des commandes assignées
+- **Utilisation du poids** : Poids utilisé / capacité totale (en kg et pourcentage)
+- **Utilisation du volume** : Volume utilisé / capacité totale (en dm³ et pourcentage)
+
+**4. Liste des commandes non assignées (lignes 225-230) :**
+```python
+if unassigned > 0:
+    print("Commandes non assignées (capacité insuffisante avec ce First-Fit):")
+    for oid, aid in assignment.items():
+        if aid is None:
+            print(f"- {oid}")
+```
+- Affiche la liste des commandes qui n'ont pas pu être assignées
+- Utile pour identifier les problèmes de capacité
+
+**Exemple de sortie :**
+```
+══════════════════════════════════════
+JOUR 1 — Allocation naïve (First-Fit)
+══════════════════════════════════════
+Commandes totales : 30
+Commandes assignées: 28
+Commandes non assignées: 2
+Distance totale estimée (proxy): 245
+
+Détail par agent:
+- R1 (robot)
+  commandes: 5 -> ['Order_001', 'Order_003', 'Order_007', 'Order_012', 'Order_015']
+  poids: 18.50/20.00 kg (92.5%)
+  volume: 25.30/30.00 dm³ (84.3%)
+- H1 (human)
+  commandes: 8 -> ['Order_002', 'Order_004', ...]
+  poids: 32.10/35.00 kg (91.7%)
+  volume: 45.20/50.00 dm³ (90.4%)
+...
+```
+
+**Utilisation :**
+La fonction `print_report()` est appelée à la fin de `main()` (ligne 259) pour afficher le rapport complet après l'allocation.
+
 #### Modèles et Dataclasses
 
 Le projet utilise les **dataclasses Python** pour modéliser les entités (Warehouse, Product, Agent, Order, Location).
