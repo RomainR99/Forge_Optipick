@@ -275,6 +275,257 @@ main.py (point d'entrée)
 
 ---
 
+## 📋 Explication Détaillée des Paramètres MiniZinc
+
+Cette section explique en détail les principaux paramètres du modèle MiniZinc (`models/allocation.mzn`).
+
+---
+
+### 1. `array[AGENTS] of float: capacity_weight;` (ligne 11)
+
+#### Structure de la déclaration
+
+- **`array[AGENTS]`** : Tableau indexé par l'ensemble `AGENTS`
+  - `AGENTS` est défini ligne 8 : `set of int: AGENTS = 1..n_agents;`
+  - C'est un ensemble d'entiers de 1 à `n_agents` (ex. si `n_agents = 7`, alors `AGENTS = {1, 2, 3, 4, 5, 6, 7}`)
+
+- **`of float`** : Chaque élément est un nombre décimal (ex. `10.5`, `25.0`)
+
+- **`capacity_weight`** : Nom du paramètre (capacité en poids de chaque agent)
+
+#### Signification
+
+Cette ligne déclare un **paramètre** (donnée d'entrée) : un tableau de nombres décimaux, un par agent.
+
+**Exemple avec 3 agents :**
+```minizinc
+capacity_weight = [10.5, 25.0, 15.3];
+```
+- `capacity_weight[1] = 10.5` (agent 1)
+- `capacity_weight[2] = 25.0` (agent 2)
+- `capacity_weight[3] = 15.3` (agent 3)
+
+#### Utilisation dans le modèle
+
+Utilisé dans la contrainte de capacité (ligne 45) :
+```minizinc
+constraint forall(agent_idx in AGENTS) (
+    sum(order_idx in ORDERS where assignment[order_idx] == agent_idx) (order_weight[order_idx]) 
+    <= capacity_weight[agent_idx]
+);
+```
+
+Cette contrainte garantit que le poids total des commandes assignées à un agent ne dépasse pas sa capacité.
+
+#### D'où viennent les valeurs ?
+
+Les valeurs proviennent de `agents.json` via Python :
+1. `main.py` charge `agents.json` via `loader.py`
+2. `loader.py` crée des objets `Agent` avec `capacity_weight`
+3. `minizinc_solver.py` extrait ces valeurs et les injecte dans MiniZinc :
+   ```python
+   capacity_weight = [agent.capacity_weight for agent in agents]
+   instance["capacity_weight"] = capacity_weight
+   ```
+
+---
+
+### 2. `set of int: ZONES = 0..n_zones-1;` (ligne 23)
+
+#### Explication du `-1`
+
+Le `-1` ici n'est **pas une valeur littérale** mais une **soustraction** : `n_zones - 1`.
+
+#### Calcul pas à pas
+
+1. **Ligne 22** : `int: n_zones = 5;`
+   - `n_zones` vaut `5`
+
+2. **Ligne 23** : `set of int: ZONES = 0..n_zones-1;`
+   - `n_zones - 1` = `5 - 1` = `4`
+   - `0..4` crée l'ensemble `{0, 1, 2, 3, 4}`
+
+#### Pourquoi `n_zones - 1` ?
+
+Les zones sont numérotées à partir de 0 :
+- Zone A = 0
+- Zone B = 1
+- Zone C = 2
+- Zone D = 3
+- Zone E = 4
+
+Avec 5 zones (0 à 4), l'ensemble doit aller de 0 à 4, donc `0..(5-1)` = `0..4`.
+
+#### Résultat
+
+```minizinc
+ZONES = {0, 1, 2, 3, 4}
+```
+
+Cela correspond aux 5 zones A, B, C, D, E.
+
+#### Utilisation dans le modèle
+
+Utilisé ligne 24 pour déclarer la matrice des zones interdites :
+```minizinc
+array[AGENTS, ZONES] of bool: forbidden_zones;
+```
+
+Cette matrice a :
+- Une ligne par agent (`AGENTS`)
+- Une colonne par zone (`ZONES = {0, 1, 2, 3, 4}`)
+
+#### Note importante
+
+Le `-1` de la ligne 28 est différent :
+```minizinc
+% Zones des commandes (encodées comme entiers: 0=A, 1=B, 2=C, 3=D, 4=E, -1=aucune)
+array[ORDERS] of int: order_zones;
+```
+
+Ici, `-1` est une **valeur littérale** utilisée pour indiquer "aucune zone" (quand un produit n'est dans aucune zone définie).
+
+---
+
+### 3. Paramètres des commandes (lignes 29-31)
+
+#### Vue d'ensemble
+
+Ces trois lignes déclarent des **paramètres** (données d'entrée) qui décrivent les caractéristiques de chaque commande, nécessaires pour vérifier les restrictions des robots.
+
+```minizinc
+array[ORDERS] of int: order_zones;
+array[ORDERS] of bool: order_has_fragile;       % La commande contient des objets fragiles
+array[ORDERS] of float: order_max_item_weight;   % Poids max d'un item dans la commande
+```
+
+---
+
+#### 3.1. `array[ORDERS] of int: order_zones;` (ligne 29)
+
+**Structure :**
+- `array[ORDERS]` : Tableau indexé par l'ensemble des commandes
+- `of int` : Chaque valeur est un entier
+- `order_zones` : Nom du paramètre
+
+**Signification :**
+Indique la zone principale de chaque commande, encodée comme un entier :
+- `0` = Zone A
+- `1` = Zone B
+- `2` = Zone C
+- `3` = Zone D
+- `4` = Zone E
+- `-1` = Aucune zone (produit non assigné à une zone)
+
+**Exemple :**
+Si vous avez 3 commandes :
+```minizinc
+order_zones = [1, 3, -1];
+```
+- Commande 1 → Zone B (1)
+- Commande 2 → Zone D (3)
+- Commande 3 → Aucune zone (-1)
+
+**Utilisation dans le modèle :**
+Utilisé ligne 55-56 pour vérifier les zones interdites des robots :
+```minizinc
+constraint forall(order_idx in ORDERS, agent_idx in AGENTS) (
+    (assignment[order_idx] == agent_idx /\ agent_type[agent_idx] == 0 /\ order_zones[order_idx] != -1) ->
+    (not forbidden_zones[agent_idx, order_zones[order_idx]])
+);
+```
+
+Cette contrainte dit : "Si une commande est assignée à un robot ET que la commande a une zone définie, alors cette zone ne doit pas être interdite pour ce robot."
+
+---
+
+#### 3.2. `array[ORDERS] of bool: order_has_fragile;` (ligne 30)
+
+**Structure :**
+- `array[ORDERS]` : Tableau indexé par les commandes
+- `of bool` : Chaque valeur est booléenne (`true` ou `false`)
+- `order_has_fragile` : Nom du paramètre
+
+**Signification :**
+Indique si une commande contient au moins un produit fragile.
+
+**Exemple :**
+```minizinc
+order_has_fragile = [false, true, false];
+```
+- Commande 1 → Pas d'objets fragiles
+- Commande 2 → Contient des objets fragiles
+- Commande 3 → Pas d'objets fragiles
+
+**Utilisation dans le modèle :**
+Utilisé lignes 60-62 pour vérifier la restriction "pas d'objets fragiles" :
+```minizinc
+constraint forall(order_idx in ORDERS, agent_idx in AGENTS) (
+    (assignment[order_idx] == agent_idx /\ agent_type[agent_idx] == 0 /\ no_fragile[agent_idx]) ->
+    (not order_has_fragile[order_idx])
+);
+```
+
+Cette contrainte dit : "Si une commande est assignée à un robot ET que ce robot ne peut pas prendre d'objets fragiles, alors la commande ne doit pas contenir d'objets fragiles."
+
+---
+
+#### 3.3. `array[ORDERS] of float: order_max_item_weight;` (ligne 31)
+
+**Structure :**
+- `array[ORDERS]` : Tableau indexé par les commandes
+- `of float` : Chaque valeur est un nombre décimal
+- `order_max_item_weight` : Nom du paramètre
+
+**Signification :**
+Indique le poids maximum d'un seul item dans chaque commande (en kg).
+
+**Exemple :**
+```minizinc
+order_max_item_weight = [2.5, 15.0, 0.8];
+```
+- Commande 1 → L'item le plus lourd pèse 2.5 kg
+- Commande 2 → L'item le plus lourd pèse 15.0 kg
+- Commande 3 → L'item le plus lourd pèse 0.8 kg
+
+**Utilisation dans le modèle :**
+Utilisé lignes 66-68 pour vérifier la restriction de poids maximum par item :
+```minizinc
+constraint forall(order_idx in ORDERS, agent_idx in AGENTS) (
+    (assignment[order_idx] == agent_idx /\ agent_type[agent_idx] == 0 /\ max_item_weight[agent_idx] > 0) ->
+    (order_max_item_weight[order_idx] <= max_item_weight[agent_idx])
+);
+```
+
+Cette contrainte dit : "Si une commande est assignée à un robot ET que ce robot a une limite de poids par item, alors le poids maximum d'un item dans la commande ne doit pas dépasser cette limite."
+
+---
+
+### Résumé des paramètres
+
+| Paramètre | Type | Signification | Utilisé pour |
+|-----------|------|---------------|--------------|
+| `capacity_weight` | `array[AGENTS] of float` | Capacité en poids de chaque agent (kg) | Vérifier la contrainte de capacité en poids |
+| `ZONES` | `set of int` | Ensemble des zones {0, 1, 2, 3, 4} | Indexer les matrices de zones interdites |
+| `order_zones` | `array[ORDERS] of int` | Zone principale de la commande (0-4 ou -1) | Vérifier les zones interdites des robots |
+| `order_has_fragile` | `array[ORDERS] of bool` | La commande contient-elle des objets fragiles ? | Vérifier la restriction "pas d'objets fragiles" |
+| `order_max_item_weight` | `array[ORDERS] of float` | Poids maximum d'un item dans la commande (kg) | Vérifier la limite de poids par item |
+
+---
+
+### D'où viennent ces valeurs ?
+
+Ces valeurs sont calculées dans `minizinc_solver.py` à partir des objets Python :
+
+1. **`capacity_weight`** : Extrait directement depuis `agent.capacity_weight` pour chaque agent
+2. **`order_zones`** : Déterminé en analysant les emplacements des produits de la commande et en utilisant `get_product_zone()` de `constraints.py`
+3. **`order_has_fragile`** : Vérifie si au moins un produit de la commande a `fragile = true`
+4. **`order_max_item_weight`** : Trouve le poids maximum parmi tous les produits de la commande
+
+Ces paramètres permettent au modèle MiniZinc de vérifier automatiquement toutes les restrictions des robots lors de l'allocation optimale.
+
+---
+
 ## 📊 Schéma du Flux Complet
 
 ```

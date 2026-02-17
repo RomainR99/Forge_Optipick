@@ -1,0 +1,50 @@
+{
+  "stats_by_type": {
+    "robot": {
+      "n_orders": 18,
+      "agent_ids": [
+        "R1",
+        "R2",
+        "R3"
+      ],
+      "share_percent": 60.0
+    },
+    "human": {
+      "n_orders": 10,
+      "agent_ids": [
+        "H1",
+        "H2"
+      ],
+      "share_percent": 33.3
+    },
+    "cart": {
+      "n_orders": 2,
+      "agent_ids": [
+        "C1",
+        "C2"
+      ],
+      "share_percent": 6.7
+    }
+  },
+  "total_orders": 30,
+  "total_assigned": 30,
+  "profiles_by_type": {
+    "robot": {
+      "n_items_avg": 5.388888888888889,
+      "weight_avg": 3.0216666666666665
+    },
+    "human": {
+      "n_items_avg": 5.3,
+      "weight_avg": 4.6160000000000005
+    },
+    "cart": {
+      "n_items_avg": 6.0,
+      "weight_avg": 12.02
+    }
+  },
+  "recommendations": [
+    "Répartition actuelle équilibrée. Analyser les pics de charge pour ajuster la flotte.",
+    "Automatiser en priorité les commandes à peu de lignes, poids modéré et priorité standard, où les robots sont les plus efficaces.",
+    "Former les humains aux commandes express, fragiles ou à forte valeur, et à la supervision des robots."
+  ]
+}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OptiPick — Entrepôt</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header>
+    <h1>OptiPick — Interface entrepôt (Jour 6)</h1>
+    <label class="header-alloc">
+      Allocation :
+      <select id="alloc-method">
+        <option value="first_fit">First-Fit (rapide)</option>
+        <option value="minizinc">MiniZinc (optimale, .mzn)</option>
+      </select>
+    </label>
+    <span id="live-indicator">● Temps réel</span>
+  </header>
+
+  <div class="layout">
+    <section class="warehouse-panel">
+      <h2>Carte de l'entrepôt</h2>
+      <div class="warehouse-canvas-wrap">
+        <canvas id="warehouse-canvas"></canvas>
+        <div id="agents-layer"></div>
+      </div>
+      <p class="zone-legend" id="zone-legend">Les carrés de couleur = <strong>zones</strong> de l'entrepôt (où sont rangés les produits) : <span id="zone-legend-list">A Électronique, B Livres, C Alimentaire (froid), D Chimique, E Textile</span>.</p>
+      <p class="zone-legend zone-legend-small">Robots et chariots : <strong>un seul étage</strong> (pas d’ascenseur). Humains : peuvent changer d’étage (orange = déplacement vertical).</p>
+    </section>
+
+    <section class="stats-panel">
+      <h2>Statistiques en direct</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="value" id="stat-orders">0</div>
+          <div class="label">Commandes</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-assigned">0</div>
+          <div class="label">Assignées</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-unassigned">0</div>
+          <div class="label">Non assignées</div>
+        </div>
+      </div>
+      <div class="stats-totals">
+        <div class="stat-card">
+          <div class="value" id="stat-distance">0</div>
+          <div class="label">Distance (u.)</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-time">0</div>
+          <div class="label">Temps (min)</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="stat-cost">0</div>
+          <div class="label">Coût (€)</div>
+        </div>
+      </div>
+      <div class="by-type" id="stats-by-type"></div>
+      <h3 class="per-order-title">Performance et coût par commande</h3>
+      <div class="orders-metrics-wrap">
+        <table class="orders-metrics-table" id="orders-metrics-table">
+          <thead>
+            <tr>
+              <th>Commande</th>
+              <th>Agent</th>
+              <th>Distance</th>
+              <th>Temps (min)</th>
+              <th>Coût (€)</th>
+            </tr>
+          </thead>
+          <tbody id="orders-metrics-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="form-panel">
+      <h2>Ajouter une commande</h2>
+      <form id="form-order">
+        <label>Heure réception</label>
+        <input type="text" id="received_time" value="12:00" placeholder="HH:MM">
+        <label>Deadline</label>
+        <input type="text" id="deadline" value="18:00" placeholder="HH:MM">
+        <label>Priorité</label>
+        <select id="priority">
+          <option value="standard">Standard</option>
+          <option value="express">Express</option>
+        </select>
+        <label>Produits</label>
+        <div class="order-items" id="order-items">
+          <div class="order-item-row">
+            <select name="product_id" class="product-select">
+              <option value="">— Choisir un produit —</option>
+            </select>
+            <input type="number" name="quantity" value="1" min="1" max="99" placeholder="Qté">
+          </div>
+        </div>
+        <button type="button" class="btn-add-row" id="btn-add-row">+ Ajouter une ligne</button>
+        <button type="submit">Créer la commande</button>
+      </form>
+      <div class="message" id="form-message"></div>
+    </section>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

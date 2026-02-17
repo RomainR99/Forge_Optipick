@@ -30,9 +30,9 @@ from src.constraints import (
 def zone_to_int(zone: Optional[str]) -> int:
     """Convertit une zone (A, B, C, D, E) en entier pour MiniZinc."""
     if zone is None:
-        return -1
+        return 0  # Retourner 0 (Zone A) au lieu de -1 pour éviter l'accès hors limites
     zone_map = {"A": 0, "B": 1, "C": 2, "D": 3, "E": 4}
-    return zone_map.get(zone, -1)
+    return zone_map.get(zone, 0)  # Retourner 0 par défaut au lieu de -1
 
 
 def int_to_zone(zone_int: int) -> Optional[str]:
@@ -48,7 +48,7 @@ def allocate_with_minizinc(
     agents: List[Agent],
     products_by_id: Dict[str, Product],
     warehouse: Warehouse,
-    solver_name: str = "gecode"
+    solver_name: str = "cbc"
 ) -> Dict[str, Optional[str]]:
     """
     Résout le problème d'allocation en utilisant MiniZinc.
@@ -58,7 +58,7 @@ def allocate_with_minizinc(
         agents: Liste des agents disponibles
         products_by_id: Dictionnaire des produits par ID
         warehouse: Configuration de l'entrepôt
-        solver_name: Nom du solveur MiniZinc à utiliser (gecode, chuffed, etc.)
+        solver_name: Nom du solveur MiniZinc à utiliser (cbc, coin-bc, highs, gecode)
     
     Returns:
         Dictionnaire {order_id: agent_id or None}
@@ -83,8 +83,11 @@ def allocate_with_minizinc(
     try:
         solver = Solver.lookup(solver_name)
     except Exception as e:
-        print(f"⚠️  Solveur {solver_name} non trouvé, utilisation de 'gecode' par défaut")
-        solver = Solver.lookup("gecode")
+        print(f"⚠️  Solveur {solver_name} non trouvé, utilisation de 'cbc' par défaut")
+        try:
+            solver = Solver.lookup("cbc")
+        except:
+            solver = Solver.lookup("gecode")
     
     # Créer une instance
     instance = Instance(solver, model)
@@ -100,13 +103,13 @@ def allocate_with_minizinc(
     order_weight = [order.total_weight for order in orders]
     order_volume = [order.total_volume for order in orders]
     
-    # 3. Zones des commandes
+    # 3. Zones, fragilité et poids max des commandes
     order_zones = []
     order_has_fragile = []
     order_max_item_weight = []
     
     for order in orders:
-        # Déterminer la zone (prendre la première zone trouvée, ou -1 si aucune)
+        # Déterminer la zone (prendre la première zone trouvée, ou 0 si aucune)
         zone = None
         for location in order.unique_locations:
             product_zone = get_product_zone(warehouse, location)
@@ -117,7 +120,7 @@ def allocate_with_minizinc(
         
         # Vérifier si la commande contient des objets fragiles
         has_fragile = any(
-            products_by_id.get(item.product_id, Product("", "", "", 0, 0, Location(0, 0))).fragile
+            products_by_id.get(item.product_id, Product("", "", "", 0, 0, Location(0, 0), fragile=False)).fragile
             for item in order.items
         )
         order_has_fragile.append(has_fragile)
@@ -187,10 +190,18 @@ def allocate_with_minizinc(
     
     # Résoudre
     try:
+        print(f"⏱️  Résolution MiniZinc ({n_orders} commandes, {n_agents} agents)...")
         result = instance.solve()
+        
+        if result is None:
+            print(f"⚠️  MiniZinc n'a pas trouvé de solution")
+            print("💡 Astuce: Utilisez --test pour tester avec moins de données (5 commandes)")
+            return {order.id: None for order in orders}
+        
         assignment_array = result["assignment"]
     except Exception as e:
         print(f"❌ Erreur lors de la résolution MiniZinc: {e}")
+        print("💡 Astuce: Utilisez --test pour tester avec moins de données (5 commandes)")
         # Retourner une solution vide en cas d'erreur
         return {order.id: None for order in orders}
     
@@ -207,14 +218,6 @@ def allocate_with_minizinc(
                 assignment[order.id] = agents[agent_index_python].id
             else:
                 assignment[order.id] = None
-    
-    # Mettre à jour les agents avec les assignations
-    for order_index, order in enumerate(orders):
-        agent_index_minizinc = assignment_array[order_index]
-        if agent_index_minizinc != 0:
-            agent_index_python = agent_index_minizinc - 1
-            if 0 <= agent_index_python < len(agents):
-                agents[agent_index_python].assign(order)
     
     return assignment
 

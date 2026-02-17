@@ -190,6 +190,15 @@ Chaque commande contient :
 - Calcul du temps de tournée
 - Vérification des deadlines
 
+**Installation d'OR-Tools pour le Jour 3 :**
+```bash
+# Activer l'environnement virtuel
+source venv/bin/activate
+
+# Installer OR-Tools
+pip install ortools
+```
+
 ### Jour 4 : Allocation Optimale et Regroupement
 - Modélisation CSP avec OR-Tools CP-SAT
 - Optimisation globale de l'allocation
@@ -229,6 +238,9 @@ venv\Scripts\activate     # Sur Windows
 pip install --upgrade pip
 pip install -r requirements.txt
 pip install minizinc
+
+# Installer OR-Tools pour l'optimisation TSP (Jour 3)
+pip install ortools
 ```
 
 **Activer l'environnement virtuel :**
@@ -245,13 +257,15 @@ deactivate
 
 Le fichier `requirements.txt` contient toutes les dépendances nécessaires :
 
-- **OR-Tools** (>=9.8) : Optimisation (CP-SAT, Routing)
+- **OR-Tools** (>=9.8) : Optimisation (CP-SAT, Routing) - **Requis pour le Jour 3 (TSP)**
 - **NumPy** (>=1.24.0) : Calculs numériques
 - **Pandas** (>=2.0.0) : Traitement de données
 - **Matplotlib** (>=3.7.0) : Visualisation
 - **Seaborn** (>=0.12.0) : Visualisation statistique
 - **NetworkX** (>=3.1) : Manipulation de graphes
 - **MiniZinc** (>=0.6.0) : Modélisation par contraintes
+
+**Note :** OR-Tools est nécessaire pour utiliser l'optimisation TSP (option `--routing`). Si OR-Tools n'est pas installé, le programme fonctionnera en mode dégradé sans optimisation TSP.
 
 ## 📁 Fichiers de Données
 
@@ -333,8 +347,40 @@ Commandes à préparer avec produits, quantités, deadlines et priorités.
 ## 🧪 Utilisation
 
 ### Exécution du Programme
+
+**Jour 1-2 : Allocation simple (sans optimisation TSP)**
 ```bash
-python main_day1.py
+python main.py
+```
+
+**Jour 3 : Avec optimisation TSP (nécessite OR-Tools)**
+```bash
+# Activer l'environnement virtuel
+source venv/bin/activate
+
+# Installer OR-Tools si ce n'est pas déjà fait
+pip install ortools
+
+# Exécuter avec optimisation TSP
+python main.py --routing
+```
+
+**Options disponibles :**
+```bash
+python main.py [OPTIONS]
+
+Options:
+  --routing              Activer l'optimisation TSP (Jour 3)
+  --warehouse PATH      Chemin vers warehouse.json (défaut: data/warehouse.json)
+  --products PATH       Chemin vers products.json (défaut: data/products.json)
+  --agents PATH         Chemin vers agents.json (défaut: data/agents.json)
+  --orders PATH         Chemin vers orders.json (défaut: data/orders.json)
+  -h, --help            Afficher l'aide
+```
+
+**Exemple avec fichiers personnalisés :**
+```bash
+python main.py --routing --warehouse data/my_warehouse.json --orders data/my_orders.json
 ```
 
 ### Structure du Code

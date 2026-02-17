@@ -1,0 +1,338 @@
+/* OptiPick — Interface web Jour 6 */
+:root {
+  --bg: #1a1b26;
+  --surface: #24283b;
+  --text: #c0caf5;
+  --accent: #7aa2f7;
+  --zone-a: #3498db;
+  --zone-b: #2ecc71;
+  --zone-c: #e74c3c;
+  --zone-d: #9b59b6;
+  --zone-e: #f39c12;
+  --robot: #7dcfff;
+  --human: #bb9af7;
+  --cart: #9ece6a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+header {
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.header-alloc {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-alloc select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: auto 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 52px);
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Carte entrepôt */
+.warehouse-panel {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.warehouse-panel h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.warehouse-canvas-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.zone-legend {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.zone-legend strong {
+  color: var(--accent);
+}
+
+.zone-legend-small {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+#warehouse-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+}
+
+/* Stats */
+.stats-panel {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.stats-panel h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.stat-card {
+  background: rgba(0,0,0,0.2);
+  padding: 0.75rem;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.stat-card .value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-card .label {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stats-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.per-order-title {
+  margin: 1rem 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.orders-metrics-wrap {
+  overflow-x: auto;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.orders-metrics-table {
+  width: 100%;
+  font-size: 0.75rem;
+  border-collapse: collapse;
+}
+
+.orders-metrics-table th,
+.orders-metrics-table td {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.orders-metrics-table th {
+  color: var(--accent);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.orders-metrics-table td:nth-child(3),
+.orders-metrics-table td:nth-child(4),
+.orders-metrics-table td:nth-child(5) {
+  text-align: right;
+}
+
+.by-type {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.by-type div {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Formulaire */
+.form-panel {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255,255,255,0.06);
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .form-panel {
+    grid-column: 1;
+  }
+}
+
+.form-panel h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.form-panel label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+  opacity: 0.9;
+}
+
+.form-panel input,
+.form-panel select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.form-panel button {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.form-panel button:hover {
+  filter: brightness(1.1);
+}
+
+.form-panel .message {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  min-height: 1.2em;
+}
+
+.form-panel .message.success { color: var(--zone-b); }
+.form-panel .message.error { color: var(--zone-c); }
+
+/* Lignes produit (ajout dynamique) */
+.order-items {
+  margin-bottom: 0.75rem;
+}
+
+.order-item-row {
+  display: grid;
+  grid-template-columns: 1fr 60px;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  align-items: end;
+}
+
+.order-item-row select { margin-bottom: 0; }
+.order-item-row input { margin-bottom: 0; }
+
+.btn-add-row {
+  background: rgba(255,255,255,0.1) !important;
+  color: var(--text) !important;
+  margin-top: 0.25rem !important;
+}
+
+/* Agents animés sur la carte */
+.agent-marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.5);
+  transform: translate(-50%, -50%);
+  transition: left 0.5s ease-out, top 0.5s ease-out;
+  z-index: 10;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.agent-marker.robot { background: var(--robot); color: var(--robot); }
+.agent-marker.human { background: var(--human); color: var(--human); }
+.agent-marker.cart { background: var(--cart); color: var(--cart); }
+
+.agent-marker.pulse {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.15); }
+}
