@@ -20,12 +20,13 @@ array[ORDERS] of float: order_volume;
 % Zones interdites: matrice booléenne [agent, zone] = true si zone interdite
 % Zones: 0=A, 1=B, 2=C, 3=D, 4=E
 int: n_zones = 5;
-set of int: ZONES = 0..n_zones-1;
+set of int: ZONES = 0..n_zones-1; %Les zones sont numérotées à partir de 0 
 array[AGENTS, ZONES] of bool: forbidden_zones;  % true si zone interdite pour cet agent
 array[AGENTS] of bool: no_fragile;              % Pas d'objets fragiles
 array[AGENTS] of float: max_item_weight;         % Poids max par item (0 si pas de limite)
 
-% Zones des commandes (encodées comme entiers: 0=A, 1=B, 2=C, 3=D, 4=E, -1=aucune)
+% Zones des commandes (encodées comme entiers: 0=A, 1=B, 2=C, 3=D, 4=E)
+% Note: 0 peut signifier Zone A ou zone non définie (par défaut Zone A pour éviter les accès hors limites)
 array[ORDERS] of int: order_zones;
 array[ORDERS] of bool: order_has_fragile;       % La commande contient des objets fragiles
 array[ORDERS] of float: order_max_item_weight;   % Poids max d'un item dans la commande
@@ -51,8 +52,10 @@ constraint forall(agent_idx in AGENTS) (
 );
 
 % 3. Restrictions des robots (zones interdites)
+% Note: order_zones[order_idx] = 0 peut signifier Zone A ou zone non définie (par défaut Zone A)
+% On vérifie seulement si la zone est dans la plage valide [0..4]
 constraint forall(order_idx in ORDERS, agent_idx in AGENTS) (
-    (assignment[order_idx] == agent_idx /\ agent_type[agent_idx] == 0 /\ order_zones[order_idx] != -1) ->
+    (assignment[order_idx] == agent_idx /\ agent_type[agent_idx] == 0 /\ order_zones[order_idx] >= 0 /\ order_zones[order_idx] < n_zones) ->
     (not forbidden_zones[agent_idx, order_zones[order_idx]])
 );
 

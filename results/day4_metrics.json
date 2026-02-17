@@ -1,0 +1,39 @@
+{
+  "first_fit": {
+    "n_orders": 10,
+    "n_assigned": 10,
+    "n_unassigned": 0,
+    "distance_proxy": 182,
+    "time_sec": 918.0,
+    "time_min": 15.3,
+    "cost_euros": 3.82
+  },
+  "minizinc": {
+    "n_orders": 10,
+    "n_assigned": 9,
+    "n_unassigned": 1,
+    "distance_proxy": 163,
+    "time_sec": 788.1666666666666,
+    "time_min": 13.136111111111111,
+    "cost_euros": 2.18
+  },
+  "cpsat": {
+    "n_orders": 10,
+    "n_assigned": 9,
+    "n_unassigned": 1,
+    "distance_proxy": 167,
+    "time_sec": 864.3333333333333,
+    "time_min": 14.405555555555555,
+    "cost_euros": 1.68
+  },
+  "batching_cpsat": {
+    "n_orders": 10,
+    "n_assigned": 9,
+    "n_unassigned": 1,
+    "distance_proxy": 167,
+    "time_sec": 889.1666666666667,
+    "time_min": 14.819444444444446,
+    "cost_euros": 0.74,
+    "n_batches": 6
+  }
+}
