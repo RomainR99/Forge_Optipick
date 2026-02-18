@@ -1,0 +1,44 @@
+[
+  {
+    "agent": "R1",
+    "orders": 9,
+    "weight": 19.9,
+    "volume": 29.9
+  },
+  {
+    "agent": "R2",
+    "orders": 5,
+    "weight": 17.44,
+    "volume": 29.32
+  },
+  {
+    "agent": "R3",
+    "orders": 4,
+    "weight": 11.67,
+    "volume": 29.28
+  },
+  {
+    "agent": "H1",
+    "orders": 6,
+    "weight": 31.32,
+    "volume": 49.57
+  },
+  {
+    "agent": "H2",
+    "orders": 1,
+    "weight": 18.74,
+    "volume": 48.09
+  },
+  {
+    "agent": "C1",
+    "orders": 5,
+    "weight": 25.52,
+    "volume": 58.07
+  },
+  {
+    "agent": "C2",
+    "orders": 0,
+    "weight": 0.0,
+    "volume": 0.0
+  }
+]

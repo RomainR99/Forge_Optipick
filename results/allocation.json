@@ -1,0 +1,45 @@
+{
+  "R1": [
+    "Order_001",
+    "Order_004",
+    "Order_006",
+    "Order_007",
+    "Order_008",
+    "Order_015",
+    "Order_016",
+    "Order_017",
+    "Order_023"
+  ],
+  "R2": [
+    "Order_002",
+    "Order_009",
+    "Order_020",
+    "Order_022",
+    "Order_029"
+  ],
+  "R3": [
+    "Order_021",
+    "Order_025",
+    "Order_026",
+    "Order_027"
+  ],
+  "H1": [
+    "Order_003",
+    "Order_005",
+    "Order_010",
+    "Order_011",
+    "Order_012",
+    "Order_013"
+  ],
+  "H2": [
+    "Order_024"
+  ],
+  "C1": [
+    "Order_014",
+    "Order_018",
+    "Order_019",
+    "Order_028",
+    "Order_030"
+  ],
+  "C2": []
+}

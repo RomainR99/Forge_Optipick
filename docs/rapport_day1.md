@@ -1,6 +1,6 @@
 # Rapport Jour 1 - Modélisation et Allocation Simple
 
-**Projet OptiPick** | Ymen Nermine, Hamid, Romain 
+**Projet OptiPick** | Imen Nermine, Hamid, Romain 
 
 ---
 
