@@ -45,6 +45,10 @@ array[ORDERS] of var 0..n_agents: assignment;
 constraint forall(agent_idx in AGENTS) (
     sum(order_idx in ORDERS where assignment[order_idx] == agent_idx) (order_weight[order_idx]) <= capacity_weight[agent_idx]
 );
+%On parcourt chaque agent un par un.
+%Pour chacun, on additionne le poids de toutes les commandes qui lui sont assignées.
+%On impose que ce poids total ne dépasse pas la capacité maximale de l’agent.
+
 
 % 2. Capacité en volume
 constraint forall(agent_idx in AGENTS) (
