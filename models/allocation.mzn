@@ -59,7 +59,10 @@ constraint forall(agent_idx in AGENTS) (
 % Note: order_zones[order_idx] = 0 peut signifier Zone A ou zone non définie (par défaut Zone A)
 % On vérifie seulement si la zone est dans la plage valide [0..4]
 constraint forall(order_idx in ORDERS, agent_idx in AGENTS) (
-    (assignment[order_idx] == agent_idx /\ agent_type[agent_idx] == 0 /\ order_zones[order_idx] >= 0 /\ order_zones[order_idx] < n_zones) ->
+    (assignment[order_idx] == agent_idx /\ 
+    agent_type[agent_idx] == 0 /\ 
+    order_zones[order_idx] >= 0 /\ 
+    order_zones[order_idx] < n_zones) ->
     (not forbidden_zones[agent_idx, order_zones[order_idx]])
 );
 
@@ -77,8 +80,11 @@ constraint forall(order_idx in ORDERS, agent_idx in AGENTS) (
 
 % 6. Incompatibilités entre produits
 % Si deux commandes sont incompatibles, elles ne peuvent pas être assignées au même agent
-constraint forall(order_first in ORDERS, order_second in ORDERS where order_first < order_second /\ incompatible[order_first, order_second]) (
-    assignment[order_first] != assignment[order_second] \/ assignment[order_first] == 0 \/ assignment[order_second] == 0
+constraint forall(order_first in ORDERS, order_second in ORDERS where order_first < order_second /\ 
+    incompatible[order_first, order_second]) (
+    assignment[order_first] != assignment[order_second] \/ 
+    assignment[order_first] == 0 \/ 
+    assignment[order_second] == 0
 );
 
 % 7. Gestion des chariots (simplifiée: un chariot nécessite qu'un humain soit disponible)

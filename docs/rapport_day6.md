@@ -89,6 +89,23 @@ Puis ouvrir dans un navigateur : **http://127.0.0.1:5001**
 
 Le serveur utilise le **port 5001** par défaut (sous macOS, le port 5000 est souvent pris par AirPlay Receiver). Pour utiliser un autre port : `FLASK_PORT=8080 python app.py`.
 
+### Version Streamlit (alternative sans JavaScript)
+
+Une version **Streamlit** de l’interface est disponible : tout est en Python (pas de canvas JavaScript).
+
+**Installation :** `pip install streamlit` (ou `pip install -r requirements.txt`, streamlit y est inclus).
+
+**Lancement :**
+
+```bash
+cd optipick
+streamlit run app_streamlit.py
+```
+
+Puis ouvrir **http://localhost:8501**.
+
+**Fonctionnalités :** même logique que l’app Flask (données, allocation First-Fit ou MiniZinc, stats, carte de l’entrepôt, formulaire pour ajouter une commande). La carte est dessinée avec Matplotlib (zones + tournées des agents). Les commandes ajoutées sont conservées en session (`st.session_state`) jusqu’à fermeture de l’onglet.
+
 ### Fonctionnalités
 
 1. **Carte de l’entrepôt** : zones A à E, point d’entrée (triangle), emplacements des produits (points), agents (cercles colorés : robot / humain / chariot) avec position dérivée de l’allocation (entrée ou premier emplacement de leur première commande).
