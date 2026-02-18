@@ -16,7 +16,21 @@ Le fichier `models/allocation.mzn` est un **modèle MiniZinc** qui résout le pr
 
 **Explication** : Ces deux entiers représentent respectivement le **nombre de commandes** à assigner et le **nombre d'agents** disponibles dans l'entrepôt. Ce sont des valeurs fixes fournies par le code Python qui appelle le modèle.
 
-**Exemple** : Si on a 10 commandes et 3 agents, `n_orders = 10` et `n_agents = 3`.
+**Où MiniZinc va chercher ces valeurs** : MiniZinc ne lit pas ces valeurs depuis un fichier. Elles sont **calculées dans le code Python** et **passées au modèle** lors de la résolution :
+
+1. **Dans Python** (`src/minizinc_solver.py`) :
+   ```python
+   n_orders = len(orders)  # Calcule le nombre de commandes
+   n_agents = len(agents)  # Calcule le nombre d'agents
+   
+   instance = Instance(solver, model)
+   instance["n_orders"] = n_orders  # Passe la valeur à MiniZinc
+   instance["n_agents"] = n_agents   # Passe la valeur à MiniZinc
+   ```
+
+2. **MiniZinc reçoit** ces valeurs et les utilise dans le modèle pour définir les tailles des tableaux et les ensembles.
+
+**Exemple** : Si on a 10 commandes et 3 agents, Python calcule `n_orders = 10` et `n_agents = 3`, puis les passe à MiniZinc via `instance["n_orders"] = 10` et `instance["n_agents"] = 3`.
 
 ---
 
