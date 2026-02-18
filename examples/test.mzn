@@ -1,18 +1,17 @@
-% Modèle MiniZinc autonome : TSP (tour le plus court)
-% Lancer (avec solveur CP) :
-%   minizinc --solver Gecode test.mzn
+% Modèle MiniZinc pour TSP (tour le plus court)
+% Utilise le fichier test.dzn pour les données
+% Lancer (depuis le répertoire examples/) :
+%   minizinc --solver COIN-BC test.mzn test.dzn
+% Ou depuis la racine :
+%   minizinc --solver COIN-BC examples/test.mzn examples/test.dzn
 
 include "globals.mzn";
 
-int: n_locations = 4;
+% PARAMÈTRES (définis dans test.dzn)
+int: n_locations;
 set of int: LOCATIONS = 1..n_locations;
 
-array[LOCATIONS, LOCATIONS] of int: distance_matrix = [|
-    0,  3,  5,  7 |
-    3,  0,  2,  4 |
-    5,  2,  0,  2 |
-    7,  4,  2,  0 |
-|];
+array[LOCATIONS, LOCATIONS] of int: distance_matrix;
 
 % next[i] = j : après i, on va à j
 array[LOCATIONS] of var LOCATIONS: next;
