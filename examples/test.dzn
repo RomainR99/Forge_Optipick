@@ -1,0 +1,17 @@
+% Données pour test.mzn
+% Fichier autonome : peut être utilisé sans Python
+% 
+% Locations :
+%   1 = Entrée (0, 0)
+%   2 = Produit P1 (2, 0)
+%   3 = Produit P2 (3, 1)
+%   4 = Produit supplémentaire (5, 2)
+
+n_locations = 4;
+
+distance_matrix = [|
+    0,  3,  5,  7  |  % Location 1 (entrée) → distances vers 1,2,3,4
+    3,  0,  2,  4  |  % Location 2 → distances
+    5,  2,  0,  2  |  % Location 3 → distances
+    7,  4,  2,  0  |  % Location 4 → distances
+|];
