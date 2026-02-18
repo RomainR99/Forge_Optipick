@@ -123,6 +123,11 @@ main.py (point d'entrée)
 
 ---
 
+**Rappel — Parsing :**  
+Parsing = lire des données brutes (JSON, texte, CSV…) et les transformer en objets structurés utilisables en Python.
+
+---
+
 ### Étape 3 : Parsing en objets Python (`src/loader.py` + `src/models.py`)
 
 **Fichiers :** `src/loader.py` et `src/models.py`
@@ -201,6 +206,9 @@ main.py (point d'entrée)
 **Deux chemins possibles selon l'option `--minizinc` :**
 
 #### Chemin A : Algorithme Glouton (`main.py`)
+
+**C’est quoi un algorithme glouton ?**  
+Un algorithme glouton (greedy en anglais) est un algorithme qui fait le **meilleur choix local immédiat** sans regarder les conséquences globales. Il « prend ce qui semble le mieux maintenant » et ne revient jamais en arrière.
 
 **Fichier :** `main.py` (lignes 95-141)
 
@@ -530,8 +538,8 @@ Ces paramètres permettent au modèle MiniZinc de vérifier automatiquement tout
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    main.py (point d'entrée)                   │
-│  - Parse arguments (--minizinc, --solver, --test)            │
+│                    main.py (point d'entrée)                 │
+│  - Parse arguments (--minizinc, --solver, --test)           │
 └───────────────────────┬─────────────────────────────────────┘
                         │
                         ▼

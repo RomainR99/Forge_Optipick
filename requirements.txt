@@ -6,3 +6,4 @@ seaborn>=0.12.0
 networkx>=3.1
 minizinc>=0.6.0
 flask>=3.0.0
+streamlit>=1.28.0

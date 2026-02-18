@@ -96,6 +96,16 @@ Le système permet de :
 
 ### Sortie Console - Exemple d'Exécution
 
+**Commande à exécuter dans le terminal :**
+
+```bash
+cd /Users/romain/Desktop/forge/optipick
+source venv/bin/activate
+python main.py
+```
+
+(Sans option `--minizinc` : le programme utilise l’algorithme glouton First-Fit par défaut. Les données par défaut sont `data/orders.json` avec 30 commandes.)
+
 Le programme affiche dans la console un rapport complet montrant l'allocation :
 
 ```
@@ -109,15 +119,46 @@ Distance totale estimée (proxy): 594
 
 Détail par agent:
 - R1 (robot)
-  commandes: 7 -> ['Order_001', 'Order_002', ...]
+  commandes: 7 -> ['Order_001', 'Order_002', 'Order_003', 'Order_004', 'Order_005', 'Order_006', 'Order_022']
   poids: 18.64/20.00 kg (93.2%)
   volume: 29.74/30.00 dm³ (99.1%)
+  vitesse: 2.0 m/s
+
 - R2 (robot)
-  commandes: 5 -> ['Order_007', 'Order_008', ...]
+  commandes: 5 -> ['Order_007', 'Order_008', 'Order_009', 'Order_010', 'Order_023']
   poids: 15.95/20.00 kg (79.8%)
   volume: 29.11/30.00 dm³ (97.0%)
-...
-```
+  vitesse: 2.0 m/s
+
+- R3 (robot)
+  commandes: 6 -> ['Order_011', 'Order_012', 'Order_014', 'Order_015', 'Order_016', 'Order_027']
+  poids: 19.80/20.00 kg (99.0%)
+  volume: 29.84/30.00 dm³ (99.5%)
+  vitesse: 2.0 m/s
+
+- H1 (human)
+  commandes: 5 -> ['Order_013', 'Order_017', 'Order_018', 'Order_019', 'Order_025']
+  poids: 29.77/35.00 kg (85.1%)
+  volume: 48.26/50.00 dm³ (96.5%)
+  vitesse: 1.5 m/s
+
+- H2 (human)
+  commandes: 5 -> ['Order_020', 'Order_021', 'Order_026', 'Order_028', 'Order_029']
+  poids: 16.39/35.00 kg (46.8%)
+  volume: 46.79/50.00 dm³ (93.6%)
+  vitesse: 1.5 m/s
+
+- C1 (cart)
+  commandes: 2 -> ['Order_024', 'Order_030']
+  poids: 24.04/50.00 kg (48.1%)
+  volume: 60.49/80.00 dm³ (75.6%)
+  vitesse: 1.2 m/s
+
+- C2 (cart)
+  commandes: 0 -> []
+  poids: 0.00/50.00 kg (0.0%)
+  volume: 0.00/80.00 dm³ (0.0%)
+  vitesse: 1.2 m/s
 
 **Observations :**
 - ✅ Toutes les 30 commandes ont été assignées avec succès
