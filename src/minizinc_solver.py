@@ -112,10 +112,12 @@ def allocate_with_minizinc(
     order_zones = []
     order_has_fragile = []
     order_max_item_weight = []
+    order_has_high_level = []
     for order in orders:
         zone_int = 0
         has_fragile = False
         max_w = 0.0
+        has_high = False
         for item in order.items:
             prod = products_by_id.get(item.product_id)
             if prod:
@@ -126,12 +128,39 @@ def allocate_with_minizinc(
                     has_fragile = True
                 if prod.weight > max_w:
                     max_w = prod.weight
+                # Extension 1 : niveau 3-5 = hauteur inaccessible aux robots
+                level = getattr(prod, "level", 1)
+                if level >= 3:
+                    has_high = True
         order_zones.append(zone_int)
         order_has_fragile.append(has_fragile)
         order_max_item_weight.append(max_w)
+        order_has_high_level.append(has_high)
     instance["order_zones"] = order_zones
     instance["order_has_fragile"] = order_has_fragile
     instance["order_max_item_weight"] = order_max_item_weight
+    instance["order_has_high_level"] = order_has_high_level
+
+    # EXTENSION 2 : Commandes express (par défaut toutes standard)
+    instance["order_is_express"] = [
+        getattr(order, "priority", "standard") == "express" 
+        for order in orders
+    ]
+
+    # EXTENSION 3 : Agents disponibles (par défaut tous disponibles)
+    instance["agent_available"] = [True] * n_agents
+    
+    # EXTENSION 3 : Commandes disponibles (par défaut toutes disponibles)
+    instance["order_available"] = [True] * n_orders
+
+    # EXTENSION 4 : Zones congestionnées (par défaut pas de congestion)
+    instance["zone_congestion_penalty"] = [0.0] * 5  # Pas de pénalité par défaut
+    instance["zone_speed_factor"] = [1.0] * 5  # Vitesse normale par défaut
+
+    # EXTENSION 5 : Scores de préférence RL (par défaut tous à 0.0 = pas de préférence)
+    # Matrice n_orders × n_agents : scores de préférence appris par RL
+    # Si un modèle RL est disponible, ces scores peuvent être remplis avec les préférences apprises
+    instance["rl_preference_scores"] = [[0.0] * n_agents for _ in range(n_orders)]
 
     instance["incompatible"] = _build_incompatible_matrix(orders, products_by_id)
 
