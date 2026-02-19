@@ -538,7 +538,9 @@ python app.py
 
 L'application web permet de visualiser l'entrepôt en temps réel et d'ajouter des commandes.
 
-**Lancer l'interface web :**
+#### Option 1 : Flask (JavaScript)
+
+**Lancer l'interface Flask :**
 ```bash
 # Méthode 1 : Via main.py
 python main.py --day6
@@ -550,14 +552,38 @@ python app.py
 FLASK_PORT=8080 python app.py
 ```
 
-**Accès :**
-- Ouvrir votre navigateur sur : http://localhost:5001
-- L'interface permet de :
-  - Visualiser la carte de l'entrepôt
-  - Voir les agents en mouvement
-  - Ajouter de nouvelles commandes
-  - Choisir entre First-Fit et MiniZinc
-  - Consulter les statistiques en temps réel
+**Accès :** http://localhost:5001
+
+#### Option 2 : Streamlit (Python pur)
+
+**Lancer l'interface Streamlit :**
+```bash
+streamlit run app_streamlit.py
+
+# Avec port personnalisé
+streamlit run app_streamlit.py --server.port 8501
+```
+
+**Accès :** http://localhost:8501
+
+#### Option 3 : Déployer sur Streamlit Cloud
+
+**Déployer depuis GitHub :**
+1. Poussez votre code sur GitHub
+2. Allez sur https://share.streamlit.io/
+3. Connectez-vous avec GitHub
+4. Cliquez sur "New app"
+5. Sélectionnez votre dépôt et entrez `app_streamlit.py`
+6. Cliquez sur "Deploy"
+
+**Guide complet :** [`DEPLOY_STREAMLIT.md`](DEPLOY_STREAMLIT.md)
+
+**Fonctionnalités communes :**
+- ✅ Visualiser la carte de l'entrepôt
+- ✅ Voir les agents en mouvement
+- ✅ Ajouter de nouvelles commandes
+- ✅ Choisir entre First-Fit et MiniZinc
+- ✅ Consulter les statistiques en temps réel
 
 ### Structure du Code
 - **models.py** : Classes de base pour modéliser le problème
