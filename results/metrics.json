@@ -1,39 +1,39 @@
 [
   {
     "agent": "R1",
-    "orders": 9,
-    "weight": 19.9,
-    "volume": 29.9
+    "orders": 6,
+    "weight": 17.38,
+    "volume": 29.59
   },
   {
     "agent": "R2",
-    "orders": 5,
-    "weight": 17.44,
-    "volume": 29.32
+    "orders": 4,
+    "weight": 11.4,
+    "volume": 28.47
   },
   {
     "agent": "R3",
-    "orders": 4,
-    "weight": 11.67,
-    "volume": 29.28
+    "orders": 2,
+    "weight": 1.98,
+    "volume": 5.41
   },
   {
     "agent": "H1",
-    "orders": 6,
-    "weight": 31.32,
-    "volume": 49.57
+    "orders": 4,
+    "weight": 16.19,
+    "volume": 42.13
   },
   {
     "agent": "H2",
-    "orders": 1,
-    "weight": 18.74,
-    "volume": 48.09
+    "orders": 0,
+    "weight": 0.0,
+    "volume": 0.0
   },
   {
     "agent": "C1",
-    "orders": 5,
-    "weight": 25.52,
-    "volume": 58.07
+    "orders": 0,
+    "weight": 0.0,
+    "volume": 0.0
   },
   {
     "agent": "C2",

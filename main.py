@@ -10,10 +10,14 @@ from src.metrics import compute_basic_metrics
 RESULTS_DIR = Path("results")
 RESULTS_DIR.mkdir(exist_ok=True)
 
+
 def main():
     orders, agents, products, warehouse = load_data()
 
-    data, order_ids, agent_ids = build_minizinc_data(orders, agents, products, warehouse)
+    data, order_ids, agent_ids, unassigned = build_minizinc_data(
+        orders, agents, products, warehouse
+    )
+
     sol = solve_allocation_minizinc(data, time_limit_ms=8000)
 
     allocation = assignment_to_allocation(sol["assign"], order_ids, agent_ids)
@@ -23,11 +27,22 @@ def main():
     for aid, oids in allocation.items():
         print(f"{aid} -> {oids}")
 
-    # Export
-    (RESULTS_DIR / "allocation.json").write_text(json.dumps(allocation, indent=2), encoding="utf-8")
-    (RESULTS_DIR / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    # Exports
+    (RESULTS_DIR / "allocation.json").write_text(
+        json.dumps(allocation, indent=2), encoding="utf-8"
+    )
+    (RESULTS_DIR / "metrics.json").write_text(
+        json.dumps(metrics, indent=2), encoding="utf-8"
+    )
+    (RESULTS_DIR / "unassigned_orders.json").write_text(
+        json.dumps(unassigned, indent=2), encoding="utf-8"
+    )
 
-    print("\n✅ Exports: results/allocation.json + results/metrics.json")
+    print("\n✅ Exports:")
+    print(" - results/allocation.json")
+    print(" - results/metrics.json")
+    print(" - results/unassigned_orders.json")
+
 
 if __name__ == "__main__":
     main()

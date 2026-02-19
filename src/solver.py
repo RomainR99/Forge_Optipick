@@ -5,27 +5,20 @@ from pathlib import Path
 
 MINIZINC_BIN = Path("/Applications/MiniZincIDE.app/Contents/Resources/minizinc")
 
-def _extract_last_json(stdout: str) -> dict:
-    """
-    MiniZinc en --output-mode json peut renvoyer plusieurs JSON (solutions intermédiaires)
-    ou du texte. On récupère le dernier objet JSON valide.
-    """
-    s = stdout.strip()
 
-    # Essai direct (cas simple)
+def _extract_last_json(stdout: str) -> dict:
+    s = stdout.strip()
     try:
         return json.loads(s)
     except json.JSONDecodeError:
         pass
 
-    # Sinon, on cherche tous les blocs JSON { ... } et on prend le dernier
     last_ok = None
     start = 0
     while True:
         i = s.find("{", start)
         if i == -1:
             break
-        # On essaie de décoder à partir de '{'
         for j in range(len(s), i, -1):
             chunk = s[i:j].strip()
             if not chunk.endswith("}"):
@@ -41,19 +34,12 @@ def _extract_last_json(stdout: str) -> dict:
             start = i + 1
 
     if last_ok is None:
-        raise RuntimeError(
-            "Impossible de parser la sortie JSON MiniZinc.\n"
-            f"Sortie brute:\n{s[:2000]}"
-        )
+        raise RuntimeError("Impossible de parser la sortie JSON MiniZinc.")
     return last_ok
 
 
-def solve_allocation_minizinc(
-    data,
-    model_path="models/allocation.mzn",
-    solver_id="org.gecode.gecode",
-    time_limit_ms=8000
-):
+def solve_allocation_minizinc(data, model_path="models/allocation.mzn",
+                             solver_id="org.gecode.gecode", time_limit_ms=8000):
     model_path = Path(model_path)
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -83,9 +69,6 @@ def solve_allocation_minizinc(
         out = _extract_last_json(proc.stdout)
 
         if "assign" not in out:
-            raise RuntimeError(
-                "La solution MiniZinc ne contient pas 'assign'.\n"
-                f"Sortie JSON:\n{out}"
-            )
+            raise RuntimeError(f"Sortie JSON MiniZinc inattendue: {out}")
 
         return out
