@@ -2,7 +2,23 @@
 
 **Optimisation de Tournées d'Entrepôt avec Coopération Humain-Robot et Gestion du Stockage**
 
-## 👥 
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
+
+## 📑 Table des Matières
+
+- [Description](#-description-du-projet)
+- [Installation](#-installation-rapide)
+- [Utilisation](#-utilisation)
+- [Structure du Projet](#-structure-du-projet)
+- [Extensions](#-extensions)
+- [Interface Web](#-interface-web)
+- [MiniZinc](#-minizinc)
+- [Documentation](#-documentation)
+- [Contributeurs](#-contributeurs)
+
+## 👥 Contributeurs
 
 - **Nermine**
 - **Imen**
@@ -27,27 +43,45 @@ L'objectif est d'organiser la **préparation optimale** des commandes clients en
 ## 🏗️ Structure du Projet
 
 ```
-forge/
+optipick/
 │
-├── data/
+├── data/                    # Données d'entrée
 │   ├── warehouse.json      # Configuration de l'entrepôt (zones, dimensions)
 │   ├── products.json        # Catalogue des produits (100 produits)
 │   ├── agents.json          # Agents disponibles (robots, humains, chariots)
 │   └── orders.json          # Commandes à préparer (20-30 par jour)
 │
-├── src/
+├── src/                     # Code source Python
 │   ├── models.py            # Classes Warehouse, Product, Agent, Order
 │   ├── loader.py            # Chargement des données JSON
 │   ├── constraints.py       # Vérification des contraintes
 │   ├── allocation.py        # Algorithmes d'allocation
+│   ├── allocation_cpsat.py  # Allocation avec OR-Tools CP-SAT
+│   ├── minizinc_solver.py   # Interface MiniZinc
 │   ├── routing.py           # Optimisation des tournées (TSP)
-│   ├── optimization.py      # Modèle CSP avec OR-Tools
-│   ├── storage.py           # Optimisation du stockage
-│   └── visualization.py     # Visualisation et dashboard
+│   ├── batching.py          # Regroupement de commandes
+│   └── ...
 │
-├── main_day1.py            # Point d'entrée (Jour 1)
-├── ENONCE_PROJET_OPTIPICK.txt  # Énoncé complet du projet
-└── README.md               # Ce fichier
+├── models/                  # Modèles d'optimisation
+│   └── allocation.mzn       # Modèle MiniZinc avec toutes les extensions
+│
+├── docs/                    # Documentation
+│   ├── extension*.md        # Documentation des extensions
+│   ├── explication_*.md     # Explications détaillées
+│   ├── output.md            # Documentation de la sortie
+│   └── rapport_day*.md      # Rapports par journée
+│
+├── templates/               # Templates HTML (interface web)
+│   └── index.html
+│
+├── static/                  # Fichiers statiques (CSS, JS)
+│   ├── css/
+│   └── js/
+│
+├── app.py                   # Application Flask (interface web)
+├── main.py                  # Point d'entrée principal
+├── requirements.txt         # Dépendances Python
+└── README.md                # Ce fichier
 ```
 
 ## 🎯 Objectifs
@@ -212,6 +246,83 @@ pip install ortools
 - Analyse de coopération humain-robot
 - Dashboard de monitoring
 
+### Jour 6 : Interface Web Interactive
+- Application Flask avec visualisation en temps réel
+- Animation des agents sur la carte de l'entrepôt
+- Formulaire pour ajouter des commandes
+- Statistiques en direct
+- Choix de la méthode d'allocation (First-Fit ou MiniZinc)
+
+## 🔌 Extensions
+
+Le projet inclut 5 extensions avancées implémentées dans le modèle MiniZinc :
+
+### Extension 1 : Picking Multi-Niveaux
+- Robots accèdent uniquement aux niveaux 1-2
+- Humains peuvent accéder à tous les niveaux (3-5)
+- Documentation : [`docs/Extension1.md`](docs/Extension1.md)
+
+### Extension 2 : Gestion Dynamique
+- Commandes express prioritaires
+- Ré-optimisation à chaque arrivée de nouvelles commandes
+- Documentation : [`docs/extension2.md`](docs/extension2.md)
+
+### Extension 3 : Pannes et Aléas
+- Gestion des robots en panne (20% de probabilité)
+- Gestion des pauses humaines (toutes les 2h, 15min)
+- Gestion des ruptures de stock
+- Documentation : [`docs/extension3.md`](docs/extension3.md)
+
+### Extension 4 : Zones Congestionnées
+- Allées étroites : vitesse réduite de 50%
+- Zones encombrées : +30s par passage
+- Zones à sens unique : contraintes de circulation
+- Documentation : [`docs/extension4.md`](docs/extension4.md)
+
+### Extension 5 : Apprentissage par Renforcement
+- Utilisation de RL pour apprendre une stratégie d'allocation
+- Intégration avec Stable-Baselines3
+- Documentation : [`docs/extension5.md`](docs/extension5.md)
+
+## 🌐 Interface Web
+
+L'interface web (Jour 6) offre une visualisation interactive de l'entrepôt :
+
+**Fonctionnalités :**
+- ✅ Carte de l'entrepôt avec zones colorées
+- ✅ Animation des agents en temps réel
+- ✅ Statistiques en direct (commandes, distance, coût)
+- ✅ Formulaire pour ajouter de nouvelles commandes
+- ✅ Choix de la méthode d'allocation (First-Fit ou MiniZinc)
+- ✅ Métriques par commande (distance, temps, coût)
+
+**Documentation :** [`docs/rapport_day6.md`](docs/rapport_day6.md)
+
+## 🔧 MiniZinc
+
+Le projet utilise MiniZinc pour la modélisation par contraintes et l'optimisation.
+
+**Modèle principal :** [`models/allocation.mzn`](models/allocation.mzn)
+
+**Fonctionnalités :**
+- Modélisation complète avec toutes les contraintes
+- Support de toutes les extensions (1-5)
+- Optimisation avec différents solveurs (CBC, Gecode, Chuffed, etc.)
+- Documentation de la sortie : [`docs/output.md`](docs/output.md)
+
+**Utilisation :**
+```bash
+# Via Python
+python main.py --minizinc --solver coin-bc
+
+# Directement avec MiniZinc CLI
+minizinc models/allocation.mzn data.dzn --solver coin-bc
+```
+
+**Documentation :**
+- Explication du modèle : [`docs/explication_assignment.md`](docs/explication_assignment.md)
+- Sortie du modèle : [`docs/output.md`](docs/output.md)
+
 ## 🛠️ Technologies Utilisées
 
 ### Installation de l'Environnement Virtuel
@@ -344,24 +455,51 @@ Chaque agent possède les champs suivants :
 ### orders.json
 Commandes à préparer avec produits, quantités, deadlines et priorités.
 
+## 🚀 Installation Rapide
+
+### Prérequis
+- Python 3.8 ou supérieur
+- pip (gestionnaire de paquets Python)
+
+### Installation
+
+```bash
+# 1. Cloner ou télécharger le projet
+cd optipick
+
+# 2. Créer l'environnement virtuel
+python3 -m venv venv
+
+# 3. Activer l'environnement virtuel
+source venv/bin/activate  # macOS/Linux
+# ou
+venv\Scripts\activate     # Windows
+
+# 4. Installer les dépendances
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# 5. Installer MiniZinc (optionnel mais recommandé)
+pip install minizinc
+# Télécharger MiniZinc depuis https://www.minizinc.org/install.html
+```
+
 ## 🧪 Utilisation
 
-### Exécution du Programme
+### Mode Ligne de Commande
 
-**Jour 1-2 : Allocation simple (sans optimisation TSP)**
+**Allocation simple (First-Fit)**
 ```bash
 python main.py
 ```
 
-**Jour 3 : Avec optimisation TSP (nécessite OR-Tools)**
+**Avec optimisation MiniZinc**
 ```bash
-# Activer l'environnement virtuel
-source venv/bin/activate
+python main.py --minizinc --solver coin-bc
+```
 
-# Installer OR-Tools si ce n'est pas déjà fait
-pip install ortools
-
-# Exécuter avec optimisation TSP
+**Avec optimisation TSP (nécessite OR-Tools)**
+```bash
 python main.py --routing
 ```
 
@@ -369,19 +507,57 @@ python main.py --routing
 ```bash
 python main.py [OPTIONS]
 
-Options:
-  --routing              Activer l'optimisation TSP (Jour 3)
-  --warehouse PATH      Chemin vers warehouse.json (défaut: data/warehouse.json)
-  --products PATH       Chemin vers products.json (défaut: data/products.json)
-  --agents PATH         Chemin vers agents.json (défaut: data/agents.json)
-  --orders PATH         Chemin vers orders.json (défaut: data/orders.json)
+Options principales:
+  --minizinc            Utiliser MiniZinc pour l'allocation optimale
+  --solver SOLVER       Solveur MiniZinc (cbc, gecode, chuffed, etc.)
+  --routing             Activer l'optimisation TSP (Jour 3)
+  --day6                Lancer l'interface web Flask
+  --warehouse PATH      Chemin vers warehouse.json
+  --products PATH       Chemin vers products.json
+  --agents PATH         Chemin vers agents.json
+  --orders PATH         Chemin vers orders.json
+  --test                Utiliser les fichiers de test
   -h, --help            Afficher l'aide
 ```
 
-**Exemple avec fichiers personnalisés :**
+**Exemples :**
 ```bash
-python main.py --routing --warehouse data/my_warehouse.json --orders data/my_orders.json
+# Allocation optimale avec MiniZinc
+python main.py --minizinc --solver coin-bc
+
+# Avec fichiers personnalisés
+python main.py --minizinc --warehouse data/my_warehouse.json
+
+# Interface web
+python main.py --day6
+# ou directement
+python app.py
 ```
+
+### Interface Web
+
+L'application web permet de visualiser l'entrepôt en temps réel et d'ajouter des commandes.
+
+**Lancer l'interface web :**
+```bash
+# Méthode 1 : Via main.py
+python main.py --day6
+
+# Méthode 2 : Directement
+python app.py
+
+# Avec port personnalisé
+FLASK_PORT=8080 python app.py
+```
+
+**Accès :**
+- Ouvrir votre navigateur sur : http://localhost:5001
+- L'interface permet de :
+  - Visualiser la carte de l'entrepôt
+  - Voir les agents en mouvement
+  - Ajouter de nouvelles commandes
+  - Choisir entre First-Fit et MiniZinc
+  - Consulter les statistiques en temps réel
 
 ### Structure du Code
 - **models.py** : Classes de base pour modéliser le problème
@@ -1037,20 +1213,81 @@ Il combine :
 - **Algorithmes Gloutons** : Stratégies d'allocation rapides
 - **Analyse de Données** : Patterns de commandes, optimisation du stockage
 
-## 📚 Ressources
+## 📚 Documentation
+
+### Documentation Principale
+- **Modèle MiniZinc** : [`docs/explication_assignment.md`](docs/explication_assignment.md)
+- **Sortie MiniZinc** : [`docs/output.md`](docs/output.md)
+- **Extensions** : [`docs/extension2.md`](docs/extension2.md), [`docs/extension3.md`](docs/extension3.md), [`docs/extension4.md`](docs/extension4.md), [`docs/extension5.md`](docs/extension5.md)
+
+### Rapports par Journée
+- Jour 1 : [`docs/rapport_day1.md`](docs/rapport_day1.md)
+- Jour 2 : [`docs/rapport_day2bis.md`](docs/rapport_day2bis.md)
+- Jour 3 : [`docs/rapport_day3.md`](docs/rapport_day3.md)
+- Jour 4 : [`docs/rapport_day4.md`](docs/rapport_day4.md)
+- Jour 5 : [`docs/rapport_day5.md`](docs/rapport_day5.md)
+- Jour 6 : [`docs/rapport_day6.md`](docs/rapport_day6.md)
+
+### Explications Détaillées
+- Zones interdites : [`docs/explication_zones_interdites.md`](docs/explication_zones_interdites.md)
+- Objets fragiles : [`docs/explication_objets_fragiles.md`](docs/explication_objets_fragiles.md)
+- Incompatibilités : [`docs/explication_incompatible.md`](docs/explication_incompatible.md)
+
+## 🔗 Ressources Externes
 
 - [Documentation OR-Tools](https://developers.google.com/optimization)
 - [CP-SAT Guide](https://developers.google.com/optimization/cp)
 - [Routing (TSP/VRP)](https://developers.google.com/optimization/routing)
+- [MiniZinc Documentation](https://www.minizinc.org/doc-latest/)
+- [Stable-Baselines3](https://stable-baselines3.readthedocs.io/) (Extension 5)
 - [TSPLIB](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/)
 
-## 📝 Notes
+## 🐛 Dépannage
 
-- Le projet suit une progression sur 5 journées avec difficulté croissante
-- Les contraintes dures doivent être respectées à 100%
-- Les contraintes souples sont optimisées selon la fonction objectif
-- La visualisation est fortement recommandée pour comprendre les résultats
+### Problèmes Courants
+
+**Erreur : MiniZinc non disponible**
+```bash
+# Installer MiniZinc
+pip install minizinc
+# Télécharger l'exécutable depuis https://www.minizinc.org/install.html
+```
+
+**Erreur : OR-Tools non disponible**
+```bash
+pip install ortools
+```
+
+**Port déjà utilisé (interface web)**
+```bash
+# Utiliser un autre port
+FLASK_PORT=8080 python app.py
+```
+
+**Erreur de syntaxe MiniZinc**
+- Vérifier que tous les paramètres sont fournis
+- Consulter [`docs/output.md`](docs/output.md) pour le format de sortie
+
+## 📊 Comparaison des Méthodes d'Allocation
+
+| Méthode | Vitesse | Optimalité | Contraintes | Extensions |
+|---------|---------|------------|-------------|------------|
+| **First-Fit** | ⚡⚡⚡ Très rapide | ⚠️ Non optimale | Capacité uniquement | ❌ |
+| **MiniZinc** | ⚡⚡ Rapide | ✅ Optimale | Toutes | ✅ Toutes |
+| **CP-SAT** | ⚡⚡ Rapide | ✅ Optimale | Toutes | ⚠️ Partielles |
+
+## 📝 Notes Importantes
+
+- ✅ Le projet suit une progression sur 6 journées avec difficulté croissante
+- ✅ Les contraintes dures doivent être respectées à 100%
+- ✅ Les contraintes souples sont optimisées selon la fonction objectif
+- ✅ La visualisation est fortement recommandée pour comprendre les résultats
+- ✅ Toutes les extensions sont implémentées dans le modèle MiniZinc
+
+## 📄 Licence
+
+Ce projet est développé dans le cadre académique du module **Programmation Logique et par Contraintes** (L2 Informatique).
 
 ---
 
-Pour plus de détails, consultez le fichier `ENONCE_PROJET_OPTIPICK.txt`.
+Pour plus de détails, consultez le fichier [`ENONCE_PROJET_OPTIPICK.txt`](ENONCE_PROJET_OPTIPICK.txt).
