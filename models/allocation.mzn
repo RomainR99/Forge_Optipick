@@ -1,7 +1,7 @@
 int: N_ORDERS;
 int: N_AGENTS;
 
-array[1..N_ORDERS] of int: order_weight;          % *100
+array[1.. N_ORDERS] of int: order_weight;          % *100
 array[1..N_ORDERS] of int: order_volume;          % *100
 array[1..N_ORDERS] of int: order_has_fragile;     % 0/1
 array[1..N_ORDERS] of int: order_has_zoneC;       % 0/1

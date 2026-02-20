@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 from src.loader import load_data
-from src.utils import manhattan, build_zone_map  # ✅ on utilise build_zone_map pour colorer TOUS les carreaux
+from src.utils import manhattan, build_zone_map
 
 RESULTS_DIR = Path("results")
 
@@ -21,6 +21,20 @@ ZONE_COLORS = {
     "D": "#D9F5D9",  # vert très clair
     "E": "#D6F4F2",  # turquoise très clair
 }
+
+# ✅ Grille complète (celle de ton plan avec lettres)
+# 10 colonnes (x=0..9) et 8 lignes (y=0..7)
+# "" = case vide (allée)
+DEFAULT_ZONE_GRID = [
+    ["E", "A", "A", "A", "A", "B", "B", "B", "C", "C"],  # y=0
+    ["",  "A", "A", "A", "A", "B", "B", "B", "C", "C"],  # y=1
+    ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],   # y=2
+    ["E", "A", "A", "A", "A", "B", "B", "B", "C", "C"],  # y=3
+    ["E", "A", "A", "A", "A", "B", "B", "B", "C", "C"],  # y=4
+    ["",  "",  "",  "",  "",  "",  "",  "",  "",  ""],   # y=5
+    ["E", "D", "D", "D", "D", "E", "E", "E", "E", "E"],  # y=6
+    ["E", "D", "D", "D", "D", "E", "E", "E", "E", "E"],  # y=7
+]
 
 
 def nearest_neighbor_route(entry, points):
@@ -48,27 +62,42 @@ def nearest_neighbor_route(entry, points):
 def draw_zone_grid_background(ax, warehouse, alpha=0.45):
     """
     Dessine des carreaux colorés en arrière-plan pour TOUS les carreaux de zone.
-    On s'appuie sur build_zone_map(warehouse) qui retourne (x,y)->"A/B/C/D/E" pour chaque case.
+
+    1) On essaie build_zone_map(warehouse) (si ton warehouse.json contient toute la grille).
+    2) Si c'est incomplet (trop peu de cases), on utilise DEFAULT_ZONE_GRID
+       (celle de ton exemple avec lettres) => résultat visuel identique à ton plan.
     """
-    zone_map = build_zone_map(warehouse)  # ✅ clé du fix : inclut toutes les cases "lettres"
+    # 1) Essai avec la vraie map venant de tes données
+    zone_map = build_zone_map(warehouse) or {}
+
+    # Heuristique : si on a trop peu de cases, la map est incomplète
+    if len(zone_map) < 30:
+        zone_map = {}
+        for y, row in enumerate(DEFAULT_ZONE_GRID):
+            for x, cell in enumerate(row):
+                z = str(cell).strip().upper()
+                if z in ZONE_COLORS:
+                    zone_map[(x, y)] = z
+
     if not zone_map:
         return 0, 0
 
     max_x = max(x for (x, _) in zone_map.keys())
     max_y = max(y for (_, y) in zone_map.keys())
 
-    # Dessiner chaque case présente dans zone_map
+    # Dessiner chaque case présente
     for (x, y), zone in zone_map.items():
         if zone is None:
             continue
         zone = str(zone).strip().upper()
-        color = ZONE_COLORS.get(zone, "#DDDDDD")
+        if zone not in ZONE_COLORS:
+            continue
 
         rect = patches.Rectangle(
             (x, y), 1, 1,
             linewidth=0.8,
             edgecolor="white",
-            facecolor=color,
+            facecolor=ZONE_COLORS[zone],
             alpha=alpha
         )
         ax.add_patch(rect)
@@ -81,24 +110,23 @@ def draw_zone_grid_background(ax, warehouse, alpha=0.45):
 # -----------------------------
 def plot_warehouse(warehouse):
     """
-    Plan minimal (comme au début) :
+    Plan minimal :
     - arrière plan = tous les carreaux de zone colorés pastel
     - pas de lettres
     - étoile noire à l'entrée
     """
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    max_x, max_y = draw_zone_grid_background(ax, warehouse, alpha=0.50)
+    max_x, max_y = draw_zone_grid_background(ax, warehouse, alpha=0.55)
 
-    # Entrée ⭐ (comme au début)
+    # Entrée ⭐
     ex, ey = warehouse["entry_point"]
-    ax.scatter([ex + 0.5], [ey + 0.5], s=380, marker="*", color="black", label="Entrée", zorder=5)
+    ax.scatter([ex + 0.5], [ey + 0.5], s=380, marker="*", color="black", label="Entrée", zorder=10)
 
     ax.set_title("Plan de l'entrepôt (zones + entrée)")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
 
-    # Axes calibrés sur toute la grille
     ax.set_xlim(0, max_x + 1)
     ax.set_ylim(0, max_y + 1)
     ax.set_aspect("equal")
@@ -108,7 +136,6 @@ def plot_warehouse(warehouse):
     ax.set_yticks(range(0, max_y + 2))
     ax.grid(True, alpha=0.18)
 
-    # Légende zones
     handles = [patches.Patch(color=ZONE_COLORS[z], label=f"Zone {z}") for z in ["A", "B", "C", "D", "E"]]
     ax.legend(handles=handles + ax.get_legend_handles_labels()[0], loc="lower right")
 
@@ -222,8 +249,6 @@ order_selected = st.sidebar.selectbox(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.code("1) python3 main.py\n2) python3 -m streamlit run app.py")
-
 
 # -----------------------------
 # Détails commande (si sélectionnée)
