@@ -5,28 +5,38 @@
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-blue.svg)](https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/)
+
+🌐 **Application en ligne :** [https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/](https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/)
 
 ## 📑 Table des Matières
 
-- [Description](#-description-du-projet)
-- [Installation](#-installation-rapide)
-- [Utilisation](#-utilisation)
-- [Structure du Projet](#-structure-du-projet)
-- [Extensions](#-extensions)
-- [Interface Web](#-interface-web)
-- [MiniZinc](#-minizinc)
-- [Documentation](#-documentation)
-- [Contributeurs](#-contributeurs)
+| # | Section | Description |
+|---|---------|-------------|
+| 1 | [Description du Projet](#-description-du-projet) | Vue d'ensemble d'OptiPick |
+| 2 | [Structure du Projet](#️-structure-du-projet) | Arborescence des fichiers |
+| 3 | [Objectifs et Contraintes](#-objectifs-et-contraintes) | Fonction objectif, contraintes dures/souples |
+| 4 | [Modélisation](#-modélisation) | Entrepôt, produits, agents, commandes |
+| 5 | [Progression par Journées](#-progression-par-journées) | Jours 1 à 6 (First-Fit → interface web) |
+| 6 | [Extensions](#-extensions) | 5 extensions : multi-niveaux, dynamique, aléas, congestion, RL |
+| 7 | [Interface Web](#-interface-web) | Flask, Streamlit, application en ligne |
+| 8 | [MiniZinc](#-minizinc) | Modèle `allocation.mzn` |
+| 9 | [Technologies Utilisées](#️-technologies-utilisées) | Environnement virtuel, dépendances |
+| 10 | [Fichiers de Données](#-fichiers-de-données) | `warehouse.json`, `products.json`, `agents.json`, `orders.json` |
+| 11 | [Installation Rapide](#-installation-rapide) | Cloner, venv, pip install |
+| 12 | [Utilisation](#-utilisation) | `main.py`, options CLI, interfaces web |
+| 13 | [Métriques de Performance](#-métriques-de-performance) | Distance, temps, coût, deadlines |
+| 14 | [Documentation technique](#-documentation-technique-intégrée) | MiniZinc, origines des paramètres, rapports |
+| 15 | [Ressources Externes](#-ressources-externes) | Liens OR-Tools, MiniZinc, etc. |
+| 16 | [Dépannage](#-dépannage) | Problèmes courants et solutions |
+| 17 | [Comparaison des Méthodes](#-comparaison-des-méthodes-dallocation) | First-Fit vs MiniZinc vs CP-SAT |
+| 18 | [Licence](#-licence) | Contexte académique, contributeurs |
 
-## 👥 Contributeurs
-
-- **Nermine**
-- **Imen**
-- **Hamid**
-- **Romain**
-
+---
 
 ## 📋 Description du Projet
+
+🌐 **[Essayez l'application en ligne →](https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/)**
 
 OptiPick est un système d'optimisation pour la gestion d'un entrepôt de e-commerce moderne où coexistent différents types d'agents :
 - **Préparateurs humains** : Expérimentés, flexibles, mais coûteux
@@ -65,11 +75,7 @@ optipick/
 ├── models/                  # Modèles d'optimisation
 │   └── allocation.mzn       # Modèle MiniZinc avec toutes les extensions
 │
-├── docs/                    # Documentation
-│   ├── extension*.md        # Documentation des extensions
-│   ├── explication_*.md     # Explications détaillées
-│   ├── output.md            # Documentation de la sortie
-│   └── rapport_day*.md      # Rapports par journée
+├── (Documentation intégrée dans ce README)
 │
 ├── templates/               # Templates HTML (interface web)
 │   └── index.html
@@ -84,7 +90,7 @@ optipick/
 └── README.md                # Ce fichier
 ```
 
-## 🎯 Objectifs
+## 🎯 Objectifs et Contraintes
 
 ### Objectif Principal
 Minimiser le score total défini par :
@@ -260,31 +266,33 @@ Le projet inclut 5 extensions avancées implémentées dans le modèle MiniZinc 
 ### Extension 1 : Picking Multi-Niveaux
 - Robots accèdent uniquement aux niveaux 1-2
 - Humains peuvent accéder à tous les niveaux (3-5)
-- Documentation : [`docs/Extension1.md`](docs/Extension1.md)
+- Voir section [Extension 1](#extension-1--picking-multi-niveaux-détails) ci-dessous
 
 ### Extension 2 : Gestion Dynamique
 - Commandes express prioritaires
 - Ré-optimisation à chaque arrivée de nouvelles commandes
-- Documentation : [`docs/extension2.md`](docs/extension2.md)
+- Voir section [Extension 2](#extension-2--gestion-dynamique-détails) ci-dessous
 
 ### Extension 3 : Pannes et Aléas
 - Gestion des robots en panne (20% de probabilité)
 - Gestion des pauses humaines (toutes les 2h, 15min)
 - Gestion des ruptures de stock
-- Documentation : [`docs/extension3.md`](docs/extension3.md)
+- Voir section [Extension 3](#extension-3--pannes-et-aléas-détails) ci-dessous
 
 ### Extension 4 : Zones Congestionnées
 - Allées étroites : vitesse réduite de 50%
 - Zones encombrées : +30s par passage
 - Zones à sens unique : contraintes de circulation
-- Documentation : [`docs/extension4.md`](docs/extension4.md)
+- Voir section [Extension 4](#extension-4--zones-congestionnées-détails) ci-dessous
 
 ### Extension 5 : Apprentissage par Renforcement
 - Utilisation de RL pour apprendre une stratégie d'allocation
 - Intégration avec Stable-Baselines3
-- Documentation : [`docs/extension5.md`](docs/extension5.md)
+- Voir section [Extension 5](#extension-5--apprentissage-par-renforcement-détails) ci-dessous
 
 ## 🌐 Interface Web
+
+🌐 **Application en ligne :** [https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/](https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/)
 
 L'interface web (Jour 6) offre une visualisation interactive de l'entrepôt :
 
@@ -296,7 +304,7 @@ L'interface web (Jour 6) offre une visualisation interactive de l'entrepôt :
 - ✅ Choix de la méthode d'allocation (First-Fit ou MiniZinc)
 - ✅ Métriques par commande (distance, temps, coût)
 
-**Documentation :** [`docs/rapport_day6.md`](docs/rapport_day6.md)
+**Documentation :** Voir section [Rapport Jour 6](#rapport-jour-6--interface-web) ci-dessous
 
 ## 🔧 MiniZinc
 
@@ -304,11 +312,13 @@ Le projet utilise MiniZinc pour la modélisation par contraintes et l'optimisati
 
 **Modèle principal :** [`models/allocation.mzn`](models/allocation.mzn)
 
+**Note :** Les données sont passées à MiniZinc depuis Python (via l'API `minizinc`). Il n'y a pas de fichier `.dzn` car les données viennent des fichiers JSON et changent à chaque exécution. Voir [Pourquoi pas de fichier .dzn ?](#pourquoi-pas-de-fichier-dzn-) ci-dessous.
+
 **Fonctionnalités :**
 - Modélisation complète avec toutes les contraintes
 - Support de toutes les extensions (1-5)
 - Optimisation avec différents solveurs (CBC, Gecode, Chuffed, etc.)
-- Documentation de la sortie : [`docs/output.md`](docs/output.md)
+- Documentation de la sortie : Voir section [Output MiniZinc](#output-minizinc) ci-dessous
 
 **Utilisation :**
 ```bash
@@ -320,10 +330,12 @@ minizinc models/allocation.mzn data.dzn --solver coin-bc
 ```
 
 **Documentation :**
-- Explication du modèle : [`docs/explication_assignment.md`](docs/explication_assignment.md)
-- Sortie du modèle : [`docs/output.md`](docs/output.md)
+- Explication du modèle : Voir section [Explication assignment](#explication-assignment) ci-dessous
+- Sortie du modèle : Voir section [Output MiniZinc](#output-minizinc) ci-dessous
 
 ## 🛠️ Technologies Utilisées
+
+Cette section décrit les bibliothèques et l'environnement d'exécution. Pour une installation pas à pas, voir [Installation Rapide](#-installation-rapide) ci-dessous.
 
 ### Installation de l'Environnement Virtuel
 
@@ -457,6 +469,8 @@ Commandes à préparer avec produits, quantités, deadlines et priorités.
 
 ## 🚀 Installation Rapide
 
+Résumé des étapes pour démarrer rapidement. Pour plus de détails (venv, solveurs), voir [Technologies Utilisées](#️-technologies-utilisées).
+
 ### Prérequis
 - Python 3.8 ou supérieur
 - pip (gestionnaire de paquets Python)
@@ -507,11 +521,13 @@ python main.py --routing
 ```bash
 python main.py [OPTIONS]
 
-Options principales:
-  --minizinc            Utiliser MiniZinc pour l'allocation optimale
-  --solver SOLVER       Solveur MiniZinc (cbc, gecode, chuffed, etc.)
-  --routing             Activer l'optimisation TSP (Jour 3)
-  --day6                Lancer l'interface web Flask
+Options principales :
+  --minizinc            Utiliser MiniZinc pour l'allocation optimale (au lieu de First-Fit)
+  --solver SOLVER       Solveur MiniZinc : cbc, coin-bc, gecode, chuffed, highs
+  --routing             Activer l'optimisation TSP avec OR-Tools (Jour 3)
+  --day4                Comparaison des stratégies (First-Fit, MiniZinc, CP-SAT, Batching)
+  --day5                Optimisation du stockage et analyse avancée
+  --day6                Lancer l'interface web Flask (port 5001)
   --warehouse PATH      Chemin vers warehouse.json
   --products PATH       Chemin vers products.json
   --agents PATH         Chemin vers agents.json
@@ -536,9 +552,13 @@ python app.py
 
 ### Interface Web
 
+🌐 **Application en ligne (Streamlit Cloud) :** [https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/](https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/)
+
 L'application web permet de visualiser l'entrepôt en temps réel et d'ajouter des commandes.
 
-#### Option 1 : Flask (JavaScript)
+#### Option 1 : Flask (JavaScript + canvas)
+
+Interface historique avec carte dessinée en canvas. Plus de contrôle sur le rendu.
 
 **Lancer l'interface Flask :**
 ```bash
@@ -554,7 +574,9 @@ FLASK_PORT=8080 python app.py
 
 **Accès :** http://localhost:5001
 
-#### Option 2 : Streamlit (Python pur)
+#### Option 2 : Streamlit (Python pur, recommandé)
+
+Interface moderne en Python pur (sans JavaScript). Carte avec Matplotlib. **Recommandé** pour une utilisation simple et rapide. C'est cette version qui est déployée en ligne.
 
 **Lancer l'interface Streamlit :**
 ```bash
@@ -566,9 +588,15 @@ streamlit run app_streamlit.py --server.port 8501
 
 **Accès :** http://localhost:8501
 
-#### Option 3 : Déployer sur Streamlit Cloud
+#### Option 3 : Application Déployée (Streamlit Cloud)
 
-**Déployer depuis GitHub :**
+🌐 **Accéder à l'application en ligne :**
+- **URL publique :** [https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/](https://forgeoptipick-dd2rg7k2t4abdossxtxhf8.streamlit.app/)
+- Application déployée sur Streamlit Cloud
+- Accessible publiquement sans installation
+- Mise à jour automatique à chaque push sur GitHub
+
+**Déployer votre propre version :**
 1. Poussez votre code sur GitHub
 2. Allez sur https://share.streamlit.io/
 3. Connectez-vous avec GitHub
@@ -1239,25 +1267,157 @@ Il combine :
 - **Algorithmes Gloutons** : Stratégies d'allocation rapides
 - **Analyse de Données** : Patterns de commandes, optimisation du stockage
 
-## 📚 Documentation
+## 📚 Documentation technique (intégrée)
 
-### Documentation Principale
-- **Modèle MiniZinc** : [`docs/explication_assignment.md`](docs/explication_assignment.md)
-- **Sortie MiniZinc** : [`docs/output.md`](docs/output.md)
-- **Extensions** : [`docs/extension2.md`](docs/extension2.md), [`docs/extension3.md`](docs/extension3.md), [`docs/extension4.md`](docs/extension4.md), [`docs/extension5.md`](docs/extension5.md)
+Cette section regroupe les explications techniques du modèle MiniZinc et des flux de données.
 
-### Rapports par Journée
-- Jour 1 : [`docs/rapport_day1.md`](docs/rapport_day1.md)
-- Jour 2 : [`docs/rapport_day2bis.md`](docs/rapport_day2bis.md)
-- Jour 3 : [`docs/rapport_day3.md`](docs/rapport_day3.md)
-- Jour 4 : [`docs/rapport_day4.md`](docs/rapport_day4.md)
-- Jour 5 : [`docs/rapport_day5.md`](docs/rapport_day5.md)
-- Jour 6 : [`docs/rapport_day6.md`](docs/rapport_day6.md)
+### Explication assignment
 
-### Explications Détaillées
-- Zones interdites : [`docs/explication_zones_interdites.md`](docs/explication_zones_interdites.md)
-- Objets fragiles : [`docs/explication_objets_fragiles.md`](docs/explication_objets_fragiles.md)
-- Incompatibilités : [`docs/explication_incompatible.md`](docs/explication_incompatible.md)
+`array[ORDERS] of var 0..n_agents: assignment;` — Cette ligne déclare la variable de décision. Chaque commande a une variable qui peut prendre une valeur entre 0 (non assignée) et n_agents (assignée à cet agent). Ce sont les contraintes qui lui donnent un sens et l'objectif pousse vers une solution optimale.
+
+---
+
+### Output MiniZinc
+
+La section OUTPUT du modèle `allocation.mzn` définit ce que MiniZinc affiche après résolution : `assignment`, `num_assigned`, `num_express_assigned`, `weighted_objective`, et les métriques des extensions. Le code Python parse cette sortie pour extraire la solution.
+
+---
+
+### Origine capacity_weight
+
+Les valeurs viennent de `data/agents.json` → `loader.py` crée les objets Agent → `minizinc_solver.py` extrait `[agent.capacity_weight for agent in agents]` et passe à MiniZinc.
+
+---
+
+### Origine order_weight
+
+Les valeurs sont calculées : `orders.json` + `products.json` → `_enrich_orders()` calcule `total_weight = Σ(product.weight × quantity)` → `minizinc_solver.py` passe à MiniZinc.
+
+---
+
+### Origine order_has_fragile
+
+Vient de `products.json` (champ `fragile`) → pour chaque commande, on vérifie si au moins un produit a `fragile = true` → liste booléenne passée à MiniZinc.
+
+---
+
+### Explication zones interdites
+
+Contrainte : si une commande est assignée à un robot et que la zone est valide, alors cette zone ne doit pas être dans `forbidden_zones` pour ce robot. La matrice `forbidden_zones[agent, zone] = true` signifie que l'agent n'a pas le droit d'aller dans cette zone.
+
+---
+
+### Explication objets fragiles
+
+Contrainte : si une commande est assignée à un robot qui n'accepte pas le fragile (`no_fragile`), alors la commande ne doit pas contenir d'objets fragiles (`not order_has_fragile`).
+
+---
+
+### Explication incompatible / incompatible_produits
+
+La matrice `incompatible[order_i, order_j]` encode les incompatibilités entre commandes (dérivées des `incompatible_with` entre produits). Si deux commandes sont incompatibles, elles ne peuvent pas être assignées au même agent.
+
+---
+
+### Explication capacity_weight (contrainte)
+
+Pour chaque agent, la somme des poids des commandes assignées doit être ≤ `capacity_weight[agent]`.
+
+---
+
+### Pourquoi pas de fichier .dzn ?
+
+`allocation.mzn` utilise l'API Python pour passer des données dynamiques (JSON) — pas de fichier `.dzn` car les données changent à chaque exécution et viennent de Python.
+
+---
+
+### Extension 1 : Picking Multi-Niveaux (détails)
+
+Robots : niveaux 1-2 uniquement. Humains : tous les niveaux. Paramètre `order_has_high_level` = true si commande contient au moins un produit sur niveau 3-5. Contrainte : un robot ne peut pas avoir une commande avec `order_has_high_level`.
+
+---
+
+### Extension 2 : Gestion Dynamique (détails)
+
+Paramètre `order_is_express`. Objectif pondéré : `1000 * num_express_assigned + num_assigned` pour prioriser les express. Ré-optimisation à chaque arrivée de nouvelles commandes.
+
+---
+
+### Extension 3 : Pannes et Aléas (détails)
+
+Paramètres `agent_available` et `order_available`. Contrainte 9 : agents indisponibles ne reçoivent pas de commandes. Contrainte 10 : commandes en rupture ne sont pas assignées. Génération des paramètres au niveau Python (20% panne robots, pauses humaines toutes les 2h).
+
+---
+
+### Extension 4 : Zones Congestionnées (détails)
+
+Paramètres `zone_congestion_penalty` et `zone_speed_factor`. Allées étroites (-50% vitesse), zones encombrées (+30s). Coût de congestion soustrait de l'objectif. Calcul précis au niveau Python lors du TSP.
+
+---
+
+### Extension 5 : Apprentissage par Renforcement (détails)
+
+Environnement RL (Gymnasium), Stable-Baselines3 (PPO). État : config entrepôt + commandes. Action : assigner commande à agent. Récompense : -distance -coût +respect_deadline. Intégration : scores de préférence RL dans MiniZinc.
+
+---
+
+### Rapport OR-Tools
+
+OR-Tools Routing (Jour 3) : TSP dans `src/routing.py` via `solve_tsp_with_ortools()`. OR-Tools CP-SAT (Jour 4) : allocation optimale dans `src/allocation_cpsat.py`. Installation : `pip install ortools`.
+
+---
+
+### Rapport Jour 1
+
+Modélisation avec dataclasses, chargement JSON, distance Manhattan, allocation First-Fit. Classes : Location, Warehouse, Product, Order, Agent. Tri par heure de réception, premier agent ayant capacité suffisante.
+
+---
+
+### Rapport Jour 2bis
+
+Flux : main.py → loader → parsing → enrichissement → tri → allocation (glouton ou MiniZinc) → rapport. Paramètres MiniZinc : capacity_weight, order_zones, order_has_fragile, order_max_item_weight, forbidden_zones, incompatible.
+
+---
+
+### Rapport Jour 3
+
+TSP avec OR-Tools Routing. `create_distance_matrix()`, `solve_tsp_with_ortools()`, `compute_route_for_agent()`, `check_deadlines()`. Comparaison avant/après : estimation proxy vs tournée optimale. Réduction typique ~18% de distance.
+
+---
+
+### Rapport Jour 4
+
+CSP avec CP-SAT. Variables x[i][j], contraintes capacité, incompatibilités, restrictions. Batching : regrouper commandes compatibles (deadline, capacité, produits). Comparaison First-Fit, MiniZinc, CP-SAT, Batching+CP-SAT.
+
+---
+
+### Rapport Jour 5
+
+Analyse des patterns (fréquence, paires co-commandées, zones). Optimisation du stockage : produits fréquents près de l'entrée, affinités. Simulation avant/après. Analyse coopération humain-robot. Dashboard avec heatmap.
+
+---
+
+### Rapport Jour 6 : Interface web
+
+Flask + JavaScript. API REST : /api/warehouse, /api/products, /api/agents, /api/orders, /api/stats. Carte canvas, stats en temps réel, formulaire ajout commande. Alternative Streamlit : `streamlit run app_streamlit.py`.
+
+---
+
+### Output (détails complets)
+
+Structure : `assignment = [2, 1, 0, ...]` (0 = non assigné), `num_assigned`, `num_express_assigned`, `weighted_objective`. Extensions : agents indisponibles, commandes rupture, coût congestion, bonus RL. Parsing Python pour construire le dictionnaire d'affectation.
+
+---
+
+### Origines et explications techniques
+
+- **capacity_weight** : agents.json → Agent.capacity_weight → instance MiniZinc
+- **order_weight** : orders + products → total_weight par commande → instance MiniZinc  
+- **order_has_fragile** : products.fragile → any(product.fragile) par commande
+- **forbidden_zones** : agent.restrictions["no_zones"] → matrice agents×zones
+- **incompatible** : can_combine(produits) → matrice commandes×commandes
+
+---
 
 ## 🔗 Ressources Externes
 
@@ -1292,7 +1452,7 @@ FLASK_PORT=8080 python app.py
 
 **Erreur de syntaxe MiniZinc**
 - Vérifier que tous les paramètres sont fournis
-- Consulter [`docs/output.md`](docs/output.md) pour le format de sortie
+- Consulter la section [Output MiniZinc](#output-minizinc) ci-dessous pour le format de sortie
 
 ## 📊 Comparaison des Méthodes d'Allocation
 
@@ -1313,6 +1473,10 @@ FLASK_PORT=8080 python app.py
 ## 📄 Licence
 
 Ce projet est développé dans le cadre académique du module **Programmation Logique et par Contraintes** (L2 Informatique).
+
+### 👥 Contributeurs
+
+- **Nermine** — **Imen** — **Hamid** — **Romain**
 
 ---
 
