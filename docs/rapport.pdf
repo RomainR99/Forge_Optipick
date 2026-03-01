@@ -1,180 +1,176 @@
-RAPPORT FINAL — PROJET OPTIPICK
+RAPPORT DE SYNTHÈSE — PROJET OPTIPICK
 
-1. Introduction
+⸻
 
-Le projet OptiPick a pour objectif de modéliser et résoudre un problème d’allocation de commandes dans un entrepôt logistique à l’aide de la programmation par contraintes (MiniZinc) couplée à Python pour le traitement des données et la visualisation.
+1. Résumé 
 
-L’idée principale est d’assigner automatiquement des commandes à des agents (robots ou humains) tout en respectant un ensemble de contraintes opérationnelles, puis de visualiser les résultats via un tableau de bord interactif.
+Ce projet vise à modéliser et résoudre un problème d’allocation de commandes dans un entrepôt logistique en utilisant la programmation par contraintes via MiniZinc, couplée à Python pour le traitement des données et la visualisation. L’objectif principal est d’affecter automatiquement des commandes à des agents (robots ou humains) tout en respectant un ensemble de contraintes opérationnelles (capacités, fragilité, restrictions de zone, deadlines, incompatibilités produits). Le modèle développé permet d’obtenir une solution faisable optimisée selon un critère défini (minimisation des commandes assignées aux humains). Les résultats obtenus montrent la pertinence de l’approche par contraintes pour ce type de problème combinatoire, tout en mettant en évidence certaines limites liées aux simplifications adoptées (estimation des temps, heuristique de routage).
 
 ⸻
 
 2. Problématique
 
-Dans un entrepôt, plusieurs commandes doivent être préparées.
-Chaque commande contient :
-	•	plusieurs produits
-	•	des contraintes (fragilité, poids, zone spécifique)
-	•	une deadline
+Dans un contexte logistique, un entrepôt doit traiter un ensemble de commandes composées de plusieurs produits. Chaque produit possède des caractéristiques spécifiques (poids, volume, fragilité, localisation dans l’entrepôt). Les agents disponibles pour le picking sont de deux types : robots et humains. Chaque agent dispose de capacités limitées en poids et volume.
 
-Chaque agent possède :
-	•	un type (robot ou humain)
-	•	une capacité maximale en poids
-	•	une capacité maximale en volume
+Le problème étudié consiste à déterminer :
 
-Le problème consiste à :
+Comment affecter chaque commande à un agent de manière automatique tout en respectant l’ensemble des contraintes opérationnelles et en optimisant un objectif donné.
 
-Trouver une affectation optimale des commandes aux agents en respectant toutes les contraintes.
+Les principales contraintes issues de l’énoncé sont :
+	•	Respect des capacités maximales des agents (poids et volume).
+	•	Interdiction pour les robots de transporter des produits fragiles.
+	•	Interdiction pour les robots d’intervenir en zone C.
+	•	Interdiction pour les robots de manipuler des produits dépassant un certain poids unitaire.
+	•	Respect des deadlines associées aux commandes.
+	•	Gestion des incompatibilités éventuelles entre produits.
 
-⸻
-
-3. Architecture de l’application
-
-3.1 Organisation du projet
-	•	data/ : fichiers JSON (agents, orders, products, warehouse)
-	•	models/allocation.mzn : modèle MiniZinc
-	•	src/ : logique Python
-	•	results/ : fichiers de sortie
-	•	app.py : dashboard Streamlit
-	•	main.py : pipeline principal
-
-3.2 Pipeline de traitement
-	1.	Chargement des données (Python)
-	2.	Transformation en tableaux MiniZinc
-	3.	Résolution par le solveur
-	4.	Export des résultats en JSON
-	5.	Visualisation via Streamlit
-
-Cette séparation garantit une architecture claire entre :
-	•	Modèle mathématique
-	•	Données
-	•	Interface utilisateur
+Ce problème relève de l’optimisation combinatoire, et plus précisément de la programmation par contraintes.
 
 ⸻
 
-4. Modélisation MiniZinc
+3. Matériel et méthodes
 
-4.1 Variable de décision
+3.1 Architecture générale
+
+Le projet est structuré en plusieurs modules :
+	•	Dossier data/ : contient les fichiers JSON décrivant les agents, produits, commandes et entrepôt.
+	•	Dossier models/ : contient le modèle MiniZinc (allocation.mzn).
+	•	Dossier src/ : implémentation Python (chargement, transformation des données, appel du solveur).
+	•	main.py : pipeline principal de résolution.
+	•	app.py : tableau de bord interactif (Streamlit).
+
+L’architecture repose sur une séparation claire :
+	•	Python : préparation des données, orchestration, visualisation.
+	•	MiniZinc : modélisation des contraintes et résolution.
+
+⸻
+
+3.2 Modèle de données
+
+Les données sont transformées en tableaux compatibles avec MiniZinc :
+	•	order_weight[o]
+	•	order_volume[o]
+	•	order_has_fragile[o]
+	•	order_has_zoneC[o]
+	•	order_has_heavy_item[o]
+	•	order_slack_sec[o]
+	•	agent_cap_weight[a]
+	•	agent_cap_volume[a]
+	•	agent_is_robot[a]
+
+La variable de décision centrale est :
 
 array[1..N_ORDERS] of var 1..N_AGENTS: assign;
 
-Chaque commande est assignée à un agent.
-
-4.2 Contraintes implémentées
-
-C1 — Capacité poids
-La somme des poids des commandes affectées à un agent ne doit pas dépasser sa capacité.
-
-C1bis — Capacité volume
-Même principe pour le volume.
-
-C2 — Incompatibilités produits
-Certaines commandes contenant des produits incompatibles sont filtrées.
-
-C3 — Fragile → pas robot
-Si une commande contient un produit fragile, elle ne peut être assignée qu’à un humain.
-
-C4 — Zone C → pas robot
-Les robots ne peuvent pas intervenir en zone C.
-
-C5 — Produit lourd (>10kg) → pas robot
-Si un produit dépasse un certain poids unitaire, il est réservé aux humains.
-
-C6 — Deadline
-Le temps estimé pour traiter une commande doit être inférieur au slack disponible.
-
-time_need_sec[o, assign[o]] <= order_slack_sec[o]
-
+Elle représente l’agent assigné à chaque commande.
 
 ⸻
 
-5. Fonction objectif
+3.3 Contraintes implémentées
 
-var int: human_orders =
-  sum(o in 1..N_ORDERS)( 1 - agent_is_robot[assign[o]] );
+Capacité poids
 
-solve minimize human_orders;
+La somme des poids des commandes assignées à un agent ne doit pas dépasser sa capacité maximale.
 
-Objectif : minimiser le nombre de commandes attribuées aux humains.
+Capacité volume
 
-Justification :
-	•	Maximiser l’usage des robots
-	•	Réduire les coûts
+Même principe pour le volume total.
 
-⸻
+Fragilité
 
-6. Résultats obtenus
+Une commande contenant au moins un produit fragile ne peut être assignée qu’à un agent humain.
 
-Le solveur produit :
-	•	allocation.json
-	•	metrics.json
-	•	unassigned_orders.json
+Zone C
 
-Le dashboard permet :
-	•	visualisation du plan de l’entrepôt
-	•	circuits de picking (heuristique nearest neighbor)
-	•	métriques par agent
-	•	analyse des commandes non assignées
+Les robots ne peuvent intervenir en zone C.
 
-⸻
+Produit lourd
 
-7. Analyse critique
+Les produits dépassant un seuil de poids unitaire sont réservés aux humains.
 
-Points forts
-	•	Modélisation claire des contraintes
-	•	Séparation architecture propre
-	•	Résolution automatique robuste
-	•	Visualisation intuitive
+Deadline
 
-Limites
-	•	Estimation simplifiée du temps
-	•	Heuristique simple pour le routing
-	•	Objectif mono-critère
-	•	Pas d’optimisation du stockage
+Le temps estimé pour traiter une commande par un agent doit être inférieur au temps disponible.
+
+Incompatibilités
+
+Les commandes contenant des produits incompatibles sont identifiées et exclues de l’allocation.
 
 ⸻
 
-8. Améliorations possibles
-	1.	Intégrer un vrai problème de tournée (TSP)
-	2.	Optimisation multi-objectif
-	3.	Réorganisation dynamique du stockage
-	4.	Ajout de priorités clients
-	5.	Simulation en temps réel
+3.4 Fonction objectif
+
+L’objectif retenu est la minimisation du nombre de commandes assignées aux humains :
+
+minimize human_orders;
+
+Ce choix vise à maximiser l’utilisation des robots, sous réserve du respect des contraintes.
 
 ⸻
 
-9. Applications industrielles
-	•	Entrepôts e-commerce
-	•	Systèmes robotisés hybrides
-	•	Planification logistique
-	•	Smart warehouses
+3.5 Outils logiciels
+	•	Python 3
+	•	MiniZinc
+	•	Solveur Gecode
+	•	Streamlit (visualisation)
+	•	Bibliothèques : pandas, matplotlib
 
 ⸻
 
-10. Vision prospective
+4. Résultats
 
-Ce projet constitue une base solide pour intégrer des techniques avancées d’optimisation.
+L’exécution du pipeline produit trois fichiers principaux :
+	•	allocation.json : répartition des commandes par agent
+	•	metrics.json : métriques par agent (nombre de commandes, poids total, volume total)
+	•	unassigned_orders.json : commandes non assignées
 
-À l’avenir, l’intégration de modèles prédictifs, d’apprentissage automatique et d’optimisation temps réel permettrait de rendre le système adaptable et autonome.
+Le tableau de bord permet :
+	•	Visualisation du plan de l’entrepôt coloré par zones
+	•	Affichage des circuits de picking (heuristique nearest neighbor)
+	•	Analyse des métriques par agent
+	•	Identification des commandes problématiques
+
+Les résultats montrent que :
+	•	Les contraintes sont respectées
+	•	Les robots sont utilisés prioritairement
+	•	Les cas impossibles sont détectés
 
 ⸻
 
-11. Conclusion
+5. Conclusion
 
-OptiPick démontre comment un problème logistique réel peut être formalisé et résolu via la programmation par contraintes.
+Ce projet démontre l’intérêt de la programmation par contraintes pour modéliser des problèmes logistiques complexes.
 
-La combinaison MiniZinc + Python permet :
-	•	Une modélisation rigoureuse
-	•	Une résolution efficace
-	•	Une visualisation exploitable
+L’approche adoptée présente plusieurs avantages :
+	•	Formalisation claire des règles métier
+	•	Séparation entre données et modèle
+	•	Résolution automatique
+	•	Visualisation exploitable
 
-Malgré certaines simplifications, le système est cohérent, défendable et extensible.
+Cependant, certaines limites existent :
+	•	Estimation simplifiée des temps de picking
+	•	Heuristique simple pour le routage
+	•	Optimisation mono-critère
+	•	Absence d’optimisation du stockage
+
+Des améliorations possibles incluent :
+	•	Intégration d’un vrai problème de tournée (TSP)
+	•	Optimisation multi-objectif
+	•	Réorganisation dynamique du stockage
+	•	Tests à grande échelle
+
+Ce travail constitue une base solide pour des applications en logistique intelligente et en entrepôts automatisés.
 
 ⸻
 
-12. Ce qu’il reste à faire (si poursuite du projet)
-	•	Implémenter routing exact
-	•	Ajouter gestion multi-objectif
-	•	Améliorer précision estimation temps
-	•	Tester sur dataset plus grand
-	•	Intégrer interface web plus avancée
+6. Bibliographie
 
+MiniZinc Handbook — https://www.minizinc.org/doc-latest/en/
+
+Nethercote, N., et al. (2007). MiniZinc: Towards a standard CP modelling language.
+
+Streamlit Documentation — https://docs.streamlit.io/
+
+Google OR-Tools Documentation — https://developers.google.com/optimization
+
+Russell, S., & Norvig, P. (2010). Artificial Intelligence: A Modern Approach.
