@@ -1,14 +1,32 @@
 RAPPORT DE SYNTHÈSE — PROJET OPTIPICK
 
+(Version détaillée – format 4 à 5 pages académiques)
+
 ⸻
 
-1. Résumé 
+1. Résumé (Abstract)
 
 Ce projet vise à modéliser et résoudre un problème d’allocation de commandes dans un entrepôt logistique en utilisant la programmation par contraintes via MiniZinc, couplée à Python pour le traitement des données et la visualisation. L’objectif principal est d’affecter automatiquement des commandes à des agents (robots ou humains) tout en respectant un ensemble de contraintes opérationnelles (capacités, fragilité, restrictions de zone, deadlines, incompatibilités produits). Le modèle développé permet d’obtenir une solution faisable optimisée selon un critère défini (minimisation des commandes assignées aux humains). Les résultats obtenus montrent la pertinence de l’approche par contraintes pour ce type de problème combinatoire, tout en mettant en évidence certaines limites liées aux simplifications adoptées (estimation des temps, heuristique de routage).
 
 ⸻
 
 2. Problématique
+
+Dans un contexte d’automatisation croissante des entrepôts logistiques, la gestion efficace des commandes constitue un enjeu majeur. Les entreprises doivent traiter un grand nombre de commandes tout en respectant des contraintes physiques, temporelles et organisationnelles. L’optimisation de l’allocation des tâches entre agents humains et robots permet d’améliorer la productivité, de réduire les coûts et d’augmenter la fiabilité des opérations.
+
+Dans ce projet, nous considérons un entrepôt structuré en plusieurs zones (A, B, C, D, E). Chaque zone représente un espace physique distinct dans lequel sont stockés différents produits. Certaines zones présentent des contraintes spécifiques (par exemple, la zone C est inaccessible aux robots).
+
+Chaque commande contient un ensemble de produits avec des quantités associées. Chaque produit possède des caractéristiques propres : poids unitaire, volume unitaire, fragilité, et localisation dans l’entrepôt.
+
+Les agents disponibles sont de deux types :
+	•	Robots : efficaces mais soumis à des restrictions (fragilité, zone C, poids excessif).
+	•	Humains : plus flexibles mais plus coûteux.
+
+Le problème peut être formulé comme un problème d’optimisation combinatoire :
+
+Trouver une affectation des commandes aux agents telle que toutes les contraintes soient respectées et qu’un objectif global soit optimisé.
+
+Ce type de problème appartient à la famille des problèmes NP-difficiles, ce qui justifie l’utilisation d’outils spécialisés comme la programmation par contraintes.
 
 Dans un contexte logistique, un entrepôt doit traiter un ensemble de commandes composées de plusieurs produits. Chaque produit possède des caractéristiques spécifiques (poids, volume, fragilité, localisation dans l’entrepôt). Les agents disponibles pour le picking sont de deux types : robots et humains. Chaque agent dispose de capacités limitées en poids et volume.
 
@@ -29,6 +47,16 @@ Ce problème relève de l’optimisation combinatoire, et plus précisément de 
 ⸻
 
 3. Matériel et méthodes
+
+3.1 Approche méthodologique
+
+Nous avons adopté une approche en deux couches :
+	1.	Préparation des données et orchestration en Python.
+	2.	Modélisation et résolution via MiniZinc.
+
+Cette séparation permet une meilleure lisibilité du modèle et une meilleure maintenabilité du code.
+
+⸻
 
 3.1 Architecture générale
 
@@ -66,7 +94,45 @@ Elle représente l’agent assigné à chaque commande.
 
 ⸻
 
-3.3 Contraintes implémentées
+3.3 Traduction des contraintes (du texte au modèle)
+
+L’un des objectifs principaux du projet était de passer d’un énoncé textuel à une modélisation formelle.
+
+Capacité poids
+
+Texte : Un agent ne peut pas dépasser sa capacité maximale de poids.
+
+Implémentation : Somme des poids des commandes assignées ≤ capacité de l’agent.
+
+Capacité volume
+
+Même logique appliquée au volume total.
+
+Fragilité
+
+Texte : Les robots ne peuvent pas transporter des produits fragiles.
+
+Implémentation : Si une commande contient un produit fragile, alors l’agent assigné ne doit pas être un robot.
+
+Zone C
+
+Texte : Les robots ne peuvent pas intervenir en zone C.
+
+Implémentation : Si une commande contient un produit situé en zone C, alors elle doit être assignée à un humain.
+
+Produit lourd
+
+Texte : Les produits dépassant 10 kg sont réservés aux humains.
+
+Implémentation : Si un produit d’une commande dépasse ce seuil, alors l’agent assigné doit être humain.
+
+Deadline
+
+Texte : Chaque commande doit être traitée avant sa deadline.
+
+Implémentation : Le temps estimé de traitement doit être inférieur au slack disponible.
+
+Cette formalisation montre comment des règles métier qualitatives peuvent être traduites en contraintes logiques et arithmétiques.
 
 Capacité poids
 
@@ -119,6 +185,25 @@ Ce choix vise à maximiser l’utilisation des robots, sous réserve du respect 
 
 4. Résultats
 
+4.1 Résultats obtenus
+
+L’exécution du modèle génère une affectation complète des commandes lorsque le problème est faisable. Dans le cas contraire, certaines commandes sont identifiées comme non assignables.
+
+Les résultats sont exportés sous forme de fichiers JSON afin de permettre leur exploitation ultérieure.
+
+4.2 Analyse des performances
+
+Les tests réalisés sur un ensemble de données représentatif montrent que le solveur trouve une solution en un temps raisonnable (quelques secondes). Cela démontre l’efficacité de la programmation par contraintes pour des tailles de problèmes modérées.
+
+4.3 Visualisation
+
+Le tableau de bord permet d’interpréter visuellement les résultats :
+	•	Répartition des charges entre agents.
+	•	Identification des zones parcourues.
+	•	Visualisation d’un circuit approximatif de picking.
+
+Cette étape est essentielle pour valider la cohérence de la solution.
+
 L’exécution du pipeline produit trois fichiers principaux :
 	•	allocation.json : répartition des commandes par agent
 	•	metrics.json : métriques par agent (nombre de commandes, poids total, volume total)
@@ -138,6 +223,23 @@ Les résultats montrent que :
 ⸻
 
 5. Conclusion
+
+Le projet OptiPick met en évidence la puissance de la programmation par contraintes pour résoudre des problèmes logistiques complexes. La modélisation formelle permet d’intégrer facilement de nouvelles contraintes et d’adapter le modèle à différents scénarios.
+
+D’un point de vue critique, plusieurs simplifications ont été nécessaires :
+	•	Le calcul du temps repose sur une approximation.
+	•	Le routage est basé sur une heuristique simple.
+	•	L’objectif est mono-critère.
+
+Cependant, ces choix sont cohérents avec le niveau du projet et permettent une solution claire et défendable.
+
+Perspectives d’amélioration :
+	•	Intégration d’un modèle de tournée exact.
+	•	Optimisation multi-objectif.
+	•	Prise en compte d’incertitudes (retards, pannes).
+	•	Extension à des environnements dynamiques.
+
+Ce projet constitue ainsi une base solide pour des développements plus avancés dans le domaine des entrepôts intelligents et de l’optimisation industrielle.
 
 Ce projet démontre l’intérêt de la programmation par contraintes pour modéliser des problèmes logistiques complexes.
 
