@@ -189,3 +189,5 @@ output [
     "% EXTENSION 4 : Coût congestion = ", show(congestion_cost), ";\n",
     "% EXTENSION 5 : Bonus RL = ", show(rl_bonus), ";\n"
 ];
+
+
