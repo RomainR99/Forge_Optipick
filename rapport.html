@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>
+body{font-family:system-ui,sans-serif;max-width:800px;margin:2em auto;padding:1em;line-height:1.5}
+table{border-collapse:collapse;margin:1em 0} th,td{border:1px solid #ccc;padding:6px 10px}
+h1{font-size:1.5em} h2{font-size:1.2em;margin-top:1.5em} h3{font-size:1.05em}
+a{color:#0066cc}
+</style></head><body><h1>Rapport OptiPick — Optimisation de Tournées d'Entrepôt avec Coopération Humain-Robot</h1>
+<p><em>Module Programmation Logique et par Contraintes — Bachelor DATA &amp; IA</em></p>
+<h3>Sommaire</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Page</th>
+<th>Section</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">1</td>
+<td><a href="#page-1">Résumé (Abstract)</a></td>
+</tr>
+<tr>
+<td style="text-align: center;">2</td>
+<td><a href="#page-2">Problématique : comment nous nous y sommes pris</a></td>
+</tr>
+<tr>
+<td style="text-align: center;">3</td>
+<td><a href="#page-3">Matériel et méthode</a></td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td><a href="#page-4">Résultats : limites et performance</a></td>
+</tr>
+<tr>
+<td style="text-align: center;">5</td>
+<td><a href="#page-5">Conclusion : enseignements et perspectives</a></td>
+</tr>
+<tr>
+<td style="text-align: center;">—</td>
+<td><a href="#bibliographie">Bibliographie</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><a id="page-1"></a></p>
+<h2>Page 1 — Résumé (Abstract)</h2>
+<p>OptiPick est un système d'optimisation conçu pour la gestion de la préparation de commandes dans un entrepôt de e-commerce où coexistent différents types d'agents : des préparateurs humains, des robots autonomes et des chariots semi-autonomes guidés par des humains. Le projet vise à résoudre plusieurs défis combinés : l'allocation optimale des commandes aux agents, le respect des contraintes de capacité et de compatibilité (incompatibilités de produits, restrictions des robots), l'optimisation des tournées de picking (problème du voyageur de commerce, TSP), et la minimisation du coût opérationnel global. Nous avons développé une approche hybride combinant la modélisation par contraintes (MiniZinc), les solveurs d'optimisation (OR-Tools CP-SAT et Routing), et un moteur Python pour le chargement des données, la validation des contraintes et la visualisation. Les résultats montrent que l'allocation optimisée (MiniZinc, CP-SAT) réduit significativement la distance parcourue et le coût par rapport à une heuristique gloutonne First-Fit, tout en garantissant le respect des contraintes dures. Le projet inclut une interface web (Streamlit/Flask) déployée en ligne pour la visualisation en temps réel et cinq extensions avancées : picking multi-niveaux, gestion dynamique des commandes express, gestion des pannes et aléas, zones congestionnées, et intégration d'apprentissage par renforcement.</p>
+<hr />
+<p><a id="page-2"></a></p>
+<h2>Page 2 — Problématique : comment nous nous y sommes pris</h2>
+<h3>Contexte et objectifs</h3>
+<p>La problématique centrale est de préparer un ensemble de commandes clients de manière optimale en assignant chaque commande à un agent capable de la traiter, tout en respectant de nombreuses contraintes et en minimisant un score composite (distance, temps, coût). Les agents ont des capacités et restrictions différentes : les robots sont rapides et peu coûteux mais ne peuvent pas accéder à la zone réfrigérée, transporter des objets fragiles ou des articles de plus de 10 kg ; les humains sont flexibles mais coûteux ; les chariots nécessitent un humain dédié. De plus, certains produits sont incompatibles entre eux (chimiques vs alimentaires, électroniques vs détergents, etc.).</p>
+<h3>Approche méthodologique</h3>
+<p>Nous avons suivi une progression en six journées :</p>
+<ol>
+<li><strong>Modélisation et allocation simple</strong> : définition des classes (Warehouse, Product, Agent, Order), chargement des données JSON, calcul de distance Manhattan, allocation naïve First-Fit.</li>
+<li><strong>Respect des contraintes dures</strong> : vérification de capacité, incompatibilités, restrictions des robots, gestion des chariots ; intégration dans un module <code>constraints.py</code>.</li>
+<li><strong>Optimisation des tournées (TSP)</strong> : modélisation du problème du voyageur de commerce pour chaque agent, résolution via OR-Tools Routing, calcul du temps de tournée et vérification des deadlines.</li>
+<li><strong>Allocation optimale et regroupement</strong> : modélisation CSP avec OR-Tools CP-SAT et MiniZinc ; stratégie de batching (regroupement de commandes compatibles) ; comparaison First-Fit, MiniZinc, CP-SAT, Batching+CP-SAT.</li>
+<li><strong>Optimisation du stockage et analyse</strong> : analyse des patterns de commandes, réorganisation de l'entrepôt (produits fréquents près de l'entrée), simulation avant/après, analyse de coopération humain-robot.</li>
+<li><strong>Interface web interactive</strong> : application Flask et Streamlit avec visualisation en temps réel, animation des agents, formulaire d'ajout de commandes, choix de la méthode d'allocation.</li>
+</ol>
+<p>Cette approche incrémentale nous a permis de valider chaque couche avant de passer à la suivante et d'obtenir un système complet et opérationnel.</p>
+<hr />
+<p><a id="page-3"></a></p>
+<h2>Page 3 — Matériel et méthode</h2>
+<h3>Environnement technique</h3>
+<ul>
+<li><strong>Langage</strong> : Python 3.8+</li>
+<li><strong>Moteur principal</strong> : <code>main.py</code> orchestre le flux : chargement JSON → enrichissement des commandes → allocation (glouton ou optimisé) → calcul des métriques → rapport ou interface web.</li>
+<li><strong>Modules clés</strong> : <code>loader.py</code> (parsing JSON), <code>models.py</code> (dataclasses), <code>constraints.py</code> (vérification), <code>allocation.py</code> (First-Fit et algorithmes gloutons), <code>allocation_cpsat.py</code> (OR-Tools CP-SAT), <code>minizinc_solver.py</code> (interface MiniZinc), <code>routing.py</code> (TSP avec OR-Tools), <code>batching.py</code> (regroupement de commandes).</li>
+</ul>
+<h3>MiniZinc</h3>
+<p>Le modèle principal <code>models/allocation.mzn</code> formalise le problème d'allocation comme un CSP/COP. Les variables de décision <code>assignment[order] = agent</code> indiquent quelle commande est assignée à quel agent (0 = non assignée). Les contraintes incluent : capacité poids/volume, zones interdites par agent, objets fragiles, poids maximal par item, incompatibilités entre commandes, et les cinq extensions (multi-niveaux, express, pannes/aléas, congestion, RL). La fonction objectif pondère le nombre de commandes assignées, la priorité express, et les pénalités. Les données sont injectées dynamiquement depuis Python via l'API <code>minizinc</code> ; il n'y a pas de fichier <code>.dzn</code> fixe car les données proviennent des JSON et varient à chaque exécution. Solveurs supportés : CBC, Gecode, Chuffed, HiGHS.</p>
+<h3>OR-Tools</h3>
+<ul>
+<li><strong>CP-SAT</strong> (<code>allocation_cpsat.py</code>) : résolution du problème d'allocation par programmation par contraintes entières. Variables binaires <code>x[i][j]</code> indiquant si la commande <code>i</code> est assignée à l'agent <code>j</code>. Contraintes de capacité, incompatibilités et restrictions. Objectif : minimiser coût ou distance.</li>
+<li><strong>Routing</strong> (<code>routing.py</code>) : résolution du TSP pour calculer les tournées optimales de chaque agent. Utilise <code>create_distance_matrix()</code> (distance Manhattan) et <code>solve_tsp_with_ortools()</code> pour produire des séquences de collecte optimisées et vérifier les deadlines.</li>
+</ul>
+<h3>Flux de données</h3>
+<p>Les fichiers <code>warehouse.json</code>, <code>products.json</code>, <code>agents.json</code>, <code>orders.json</code> sont chargés par <code>loader.py</code>, enrichis (poids, volume, zones, fragilité, incompatibilités), puis passés soit à l'algorithme First-Fit, soit à MiniZinc ou CP-SAT. Les résultats sont des dictionnaires <code>{order_id: agent_id}</code> utilisés pour le calcul des métriques (distance, temps, coût) et l'affichage dans l'interface web.</p>
+<hr />
+<p><a id="page-4"></a></p>
+<h2>Page 4 — Résultats : limites et performance</h2>
+<h3>Synthèse des performances</h3>
+<p>L'évaluation a été réalisée sur un jeu de 10 commandes (données de test) avec 7 agents (3 robots, 2 humains, 2 chariots). Les métriques clés sont présentées ci-dessous.</p>
+<h3>Comparaison des méthodes d'allocation</h3>
+<table>
+<thead>
+<tr>
+<th>Méthode</th>
+<th>Commandes assignées</th>
+<th>Distance (proxy)</th>
+<th>Δ distance</th>
+<th>Temps (min)</th>
+<th>Coût (€)</th>
+<th>Δ coût</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First-Fit</td>
+<td>10/10</td>
+<td>182</td>
+<td>—</td>
+<td>15,3</td>
+<td>3,82</td>
+<td>—</td>
+</tr>
+<tr>
+<td>MiniZinc</td>
+<td>9/10</td>
+<td>163</td>
+<td>−10,4 %</td>
+<td>13,1</td>
+<td>2,18</td>
+<td>−43 %</td>
+</tr>
+<tr>
+<td>CP-SAT</td>
+<td>9/10</td>
+<td>167</td>
+<td>−8,2 %</td>
+<td>14,4</td>
+<td>1,68</td>
+<td>−56 %</td>
+</tr>
+<tr>
+<td>Batching + CP-SAT</td>
+<td>9/10</td>
+<td>167</td>
+<td>−8,2 %</td>
+<td>14,8</td>
+<td>0,74</td>
+<td>−81 %</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interprétation :</strong></p>
+<ul>
+<li><strong>First-Fit</strong> (heuristique gloutonne) : très rapide, assigne toutes les commandes dans nos tests, mais sans optimisation globale. Distance et coût les plus élevés.</li>
+<li><strong>MiniZinc et CP-SAT</strong> (solveurs exacts) : réduisent la distance de 8–10 % et le coût de 43–56 %. Une commande peut rester non assignée lorsque les contraintes sont trop strictes.</li>
+<li><strong>Batching + CP-SAT</strong> : en regroupant les commandes compatibles, le coût chute à 0,74 € (−81 % par rapport à First-Fit) grâce à une meilleure utilisation des chariots et des robots.</li>
+</ul>
+<h3>Compromis heuristique vs solveur exact</h3>
+<table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>Heuristique (First-Fit)</th>
+<th>Solveur exact (MiniZinc, CP-SAT)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Temps de calcul</td>
+<td>Très rapide</td>
+<td>Plus lent</td>
+</tr>
+<tr>
+<td>Qualité solution</td>
+<td>Sous-optimale</td>
+<td>Optimale ou proche</td>
+</tr>
+<tr>
+<td>Complétude</td>
+<td>Souvent toutes assignées</td>
+<td>Peut laisser des non-assignées</td>
+</tr>
+<tr>
+<td>Usage recommandé</td>
+<td>Réactivité, gros volumes</td>
+<td>Qualité, instances moyennes</td>
+</tr>
+</tbody>
+</table>
+<h3>Optimisation TSP</h3>
+<p>L'optimisation des tournées avec OR-Tools Routing réduit typiquement la distance de <strong>15–20 %</strong> par rapport à une simple estimation (somme des distances entrée ↔ emplacement). La fonction <code>check_deadlines</code> garantit que les tournées respectent les contraintes temporelles des commandes.</p>
+<h3>Limites identifiées</h3>
+<ol>
+<li><strong>Évolutivité</strong> : Pour de grandes instances (nombreux agents et commandes), MiniZinc et CP-SAT peuvent être lents ; il faut envisager des timeouts et un fallback vers First-Fit.</li>
+<li><strong>Données synthétiques</strong> : Les données utilisées sont simulées ; une validation sur flux réels d'entrepôt reste à réaliser.</li>
+<li><strong>Modélisation</strong> : La distance est une proxy (Manhattan) ; les temps de picking réels (ramassage, scan, manipulation) ne sont pas modélisés finement.</li>
+<li><strong>Extensions</strong> : Les extensions (multi-niveaux, congestion, RL) sont intégrées au modèle MiniZinc mais n'ont pas été évaluées quantitativement en termes de gain.</li>
+<li><strong>Visualisation</strong> : L'animation des agents est indicative et ne reflète pas un système de localisation en temps réel.</li>
+</ol>
+<h3>Heuristiques</h3>
+<p>Une heuristique est une méthode de résolution rapide d'un problème qui donne une bonne solution, mais pas forcément la solution optimale. Autrement dit : on simplifie le problème, on utilise des règles pratiques ou de l'intuition, et on obtient une solution acceptable rapidement.</p>
+<p><strong>Compromis algorithme exact vs heuristique :</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Résultat</th>
+<th>Temps</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Algorithme exact</td>
+<td>Solution optimale</td>
+<td>Souvent très lent</td>
+</tr>
+<tr>
+<td>Heuristique</td>
+<td>Bonne solution</td>
+<td>Rapide</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Exemples d'applications :</strong> recherche de chemin (GPS, A*), logistique (Amazon), jeux (échecs, Go), trading algorithmique, robotique.</p>
+<p><strong>10 heuristiques très utilisées en algorithmique :</strong></p>
+<ol>
+<li>
+<p><strong>Greedy (glouton)</strong> : on choisit la meilleure option locale à chaque étape. Exemples : rendu de monnaie, tâche la plus courte, ratio valeur/poids (sac à dos). Utilisé en : optimisation, graphes, compression (Huffman).</p>
+</li>
+<li>
+<p><strong>Nearest Neighbor (plus proche voisin)</strong> : toujours aller vers l'élément le plus proche. Très utilisé pour le TSP, la robotique, le GPS. Rapide mais pas toujours optimal.</p>
+</li>
+<li>
+<p><strong>A*</strong> (A-star) : recherche de chemin optimale. Formule f(n) = g(n) + h(n) avec g(n) = coût parcouru, h(n) = estimation du coût restant (distance euclidienne ou Manhattan). Utilisé dans : Google Maps, jeux vidéo, robotique.</p>
+</li>
+<li>
+<p><strong>Branch and Bound</strong> : calculer des bornes pour éliminer les solutions impossibles. Si un chemin coûte déjà plus cher que le meilleur trouvé → on arrête d'explorer. Utilisé en : optimisation combinatoire, TSP, programmation entière.</p>
+</li>
+<li>
+<p><strong>Hill Climbing</strong> : améliorer progressivement une solution (petite modification → garder si meilleur). Risque : optimum local. Utilisé en IA et optimisation.</p>
+</li>
+<li>
+<p><strong>Simulated Annealing (recuit simulé)</strong> : accepter des mauvaises solutions au début pour explorer, puis devenir plus strict. Évite les optimums locaux. Utilisé en : optimisation industrielle, VLSI, logistique.</p>
+</li>
+<li>
+<p><strong>Genetic Algorithms</strong> : population de solutions, sélection, croisement, mutation. Utilisé en : IA, optimisation, finance, design industriel.</p>
+</li>
+<li>
+<p><strong>Tabu Search</strong> : mémoire des solutions explorées, empêcher les cycles. Utilisé en : planning, scheduling, logistique.</p>
+</li>
+<li>
+<p><strong>Beam Search</strong> : garder seulement les k meilleurs états. Utilisé en : NLP, traduction, génération de texte.</p>
+</li>
+<li>
+<p><strong>Monte Carlo</strong> : explorer des solutions aléatoirement, nombreuses simulations. Exemples : Monte Carlo Tree Search, AlphaGo, poker AI, robotique, trading.</p>
+</li>
+</ol>
+<h3>Problèmes NP-complets</h3>
+<p>Non-deterministic Polynomial time (temps polynomial non déterministe)
+Temps polynomial veut dire que le temps de calcul augmente comme une puissance de la taille des données (n², n³, etc.), et non de manière explosive (2ⁿ, n!, etc.).</p>
+<p>Exemple :</p>
+<p>Taille des données : n (nombre de villes, nombre d’objets, etc.)
+Algorithme en temps polynomial : temps ≈ n, n² ou n³ → reste raisonnable même pour de gros n
+Algorithme en temps exponentiel : temps ≈ 2ⁿ ou n! → explose très vite quand n grandit
+Concrètement :</p>
+<p>n = 100 → n² ≈ 10 000 étapes (très rapide)
+n = 100 → 2¹⁰⁰ étapes (inaccessible)</p>
+<p>Voici 7 problèmes classiques NP-complets où l'on utilise presque toujours des heuristiques ou méta-heuristiques, car trouver la solution exacte devient impossible à grande échelle :</p>
+<ol>
+<li><strong>Travelling Salesman Problem (TSP)</strong></li>
+<li><strong>Knapsack Problem (Sac à dos)</strong></li>
+<li><strong>Graph Coloring</strong></li>
+<li><strong>Set Cover Problem</strong></li>
+<li><strong>Vertex Cover</strong></li>
+<li><strong>Job Scheduling</strong></li>
+<li><strong>Bin Packing</strong></li>
+</ol>
+<h3>Méthodes d'optimisation avancées</h3>
+<ol>
+<li><strong>Mixed Integer Linear Programming (MILP)</strong> — optimisation industrielle</li>
+<li><strong>Monte Carlo Tree Search (MCTS)</strong> — décisions complexes (ex. AlphaGo)</li>
+<li><strong>Reinforcement Learning (RL)</strong> — apprentissage par récompense et punition, stratégie adaptative</li>
+<li><strong>Evolutionary Algorithms (Algorithmes génétiques)</strong> — inspirés de l'évolution biologique. Principe : générer une population de solutions, sélectionner les meilleures, croiser les solutions, muter</li>
+<li><strong>Gradient-Based Optimization (Deep Learning)</strong> — on minimise une fonction de coût Loss(θ) avec descente de gradient. Variantes modernes : SGD(Stochastic Gradient Descent), Adam, RMSProp</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Algorithme</th>
+<th>Domaine</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MILP</td>
+<td>Optimisation industrielle</td>
+</tr>
+<tr>
+<td>Monte Carlo Tree Search</td>
+<td>Décisions complexes</td>
+</tr>
+<tr>
+<td>Reinforcement Learning</td>
+<td>Stratégie adaptative</td>
+</tr>
+<tr>
+<td>Algorithmes génétiques</td>
+<td>Optimisation globale</td>
+</tr>
+<tr>
+<td>Gradient descent</td>
+<td>Machine learning</td>
+</tr>
+</tbody>
+</table>
+<h3>Optimiseurs de descente de gradient</h3>
+<p><strong>3. SGD (Stochastic Gradient Descent)</strong></p>
+<p>SGD signifie descente de gradient stochastique. Au lieu d'utiliser tout le dataset, on met à jour les paramètres avec un seul exemple ou un petit batch.</p>
+<p><strong>Formule :</strong> θ = θ − α ∇Loss(xᵢ)</p>
+<ul>
+<li><strong>Avantages :</strong> beaucoup plus rapide, permet d'entraîner des modèles très grands</li>
+<li><strong>Inconvénients :</strong> plus de bruit dans l'apprentissage, convergence moins stable</li>
+<li><strong>Utilisé pour :</strong> deep learning, réseaux neuronaux</li>
+</ul>
+<p><strong>4. RMSProp</strong></p>
+<p>RMSProp adapte automatiquement le learning rate pour chaque paramètre. Idée : si un gradient est souvent grand, on réduit son pas.</p>
+<p><strong>Formule simplifiée :</strong> vₜ = β vₜ₋₁ + (1 − β) gₜ² ; mise à jour : θ = θ − α gₜ / √(vₜ + ε)</p>
+<ul>
+<li><strong>Avantages :</strong> stabilise l'apprentissage, fonctionne bien pour les réseaux profonds</li>
+<li><strong>Utilisé dans :</strong> RNN, deep learning</li>
+</ul>
+<p><strong>5. Adam (Adaptive Moment Estimation)</strong></p>
+<p>Adam est aujourd'hui l'optimiseur le plus utilisé en deep learning. Il combine momentum et RMSProp. Il calcule la moyenne du gradient et la moyenne du gradient au carré.</p>
+<p><strong>Formules simplifiées :</strong>
+- mₜ = β₁ mₜ₋₁ + (1 − β₁) gₜ
+- vₜ = β₂ vₜ₋₁ + (1 − β₂) gₜ²
+- mise à jour : θ = θ − α mₜ / (√vₜ + ε)</p>
+<ul>
+<li><strong>Avantages :</strong> très stable, converge rapidement, peu de réglages</li>
+<li><strong>Optimiseur par défaut dans :</strong> PyTorch, TensorFlow, Keras</li>
+</ul>
+<p><strong>Comparaison :</strong></p>
+<table>
+<thead>
+<tr>
+<th>Algorithme</th>
+<th>Caractéristique</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SGD</td>
+<td>Simple, rapide</td>
+</tr>
+<tr>
+<td>RMSProp</td>
+<td>Adapte le learning rate</td>
+</tr>
+<tr>
+<td>Adam</td>
+<td>Combine momentum + RMSProp</td>
+</tr>
+</tbody>
+</table>
+<h3>Compression de Huffman</h3>
+<p>La compression de Huffman est une méthode de compression sans perte. Elle permet de réduire la taille d'un fichier en utilisant moins de bits pour les symboles fréquents et plus de bits pour les symboles rares.</p>
+<p><strong>Principe :</strong> les caractères les plus fréquents obtiennent les codes binaires les plus courts.</p>
+<hr />
+<p><a id="page-5"></a></p>
+<h2>Page 5 — Conclusion : enseignements et perspectives</h2>
+<h3>Enseignements</h3>
+<ul>
+<li><strong>Programmation par contraintes</strong> : La modélisation en CSP/COP (MiniZinc, CP-SAT) est adaptée à l'allocation avec contraintes complexes (capacité, incompatibilités, restrictions). La séparation entre modèle et données facilite l'évolution et la maintenance.</li>
+<li><strong>Hybridation</strong> : Combiner une heuristique rapide (First-Fit) pour les cas simples et des solveurs exacts (MiniZinc, CP-SAT) pour l'optimisation offre un bon compromis performance/qualité.</li>
+<li><strong>TSP et routing</strong> : L'optimisation des tournées apporte un gain mesurable sur la distance ; OR-Tools Routing est facilement intégrable dans un pipeline Python.</li>
+<li><strong>Architecture modulaire</strong> : Le découpage loader → models → constraints → allocation → routing permet des tests unitaires et l'ajout de nouvelles méthodes sans réécriture majeure.</li>
+</ul>
+<h3>Si l'on continuait le projet</h3>
+<ol>
+<li><strong>Validation sur données réelles</strong> : Partenariat avec un entrepôt pour tester sur des flux de commandes et des configurations réelles.</li>
+<li><strong>Optimisation multi-objectif</strong> : Ponderer explicitement distance, temps, coût et équilibrage de charge avec des méthodes Pareto ou des poids configurables par l'utilisateur.</li>
+<li><strong>Temps de résolution</strong> : Fixer des timeouts, des objectifs de gap, et des stratégies de dégradation (fallback vers First-Fit si le solveur dépasse le temps imparti).</li>
+<li><strong>Extensions opérationnelles</strong> : Intégrer les pannes, la congestion et la dynamique des commandes dans un environnement de simulation continu pour évaluer la robustesse.</li>
+<li><strong>Apprentissage par renforcement</strong> : Pousser l'extension RL pour apprendre des politiques d'allocation adaptatives à partir de données historiques.</li>
+<li><strong>Interface et déploiement</strong> : Améliorer l'ergonomie de l'interface Streamlit, ajouter des tableaux de bord de suivi et une API REST pour une intégration avec des systèmes de gestion d'entrepôt (WMS).</li>
+</ol>
+<p>En résumé, OptiPick démontre la faisabilité d'un système d'optimisation de tournées d'entrepôt fondé sur la programmation par contraintes et l'optimisation combinatoire, avec une base technique solide et des pistes claires pour une industrialisation future.</p>
+<hr />
+<p><a id="bibliographie"></a></p>
+<h2>Bibliographie</h2>
+<h3>Références écrites</h3>
+<ul>
+<li><strong>MiniZinc</strong> : Rossi et al., <em>MiniZinc 2.0: A declarative modeling language for constraint programming</em>, 2012</li>
+<li><strong>OR-Tools</strong> : <a href="https://developers.google.com/optimization">Documentation officielle</a></li>
+<li><strong>TSP</strong> : Gutin &amp; Punnen (eds.), <em>The Traveling Salesman Problem and Its Variations</em>, Springer, 2006</li>
+</ul>
+<hr />
+<h3>Vidéos YouTube — liens cliquables</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Thème</th>
+<th>Contenu</th>
+<th>Vidéo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>TSP</td>
+<td>Problème du voyageur, OR-Tools Routing</td>
+<td><a href="https://www.youtube.com/watch?v=yqH11OHfN2U&amp;t=1s">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Recuit simulé</td>
+<td>Simulated annealing, TSP, Python</td>
+<td><a href="https://www.youtube.com/watch?v=l6Mi9pFZZMQ">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>OR-Tools Routing</td>
+<td>Routing solver</td>
+<td><a href="https://www.youtube.com/watch?v=AJ6LeiMe_PQ&amp;list=PLzQG9dlL-us7zZz6T6AHFpq8U2WT_4aoM">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>CP-SAT</td>
+<td>Constraint Programming, Union Find</td>
+<td><a href="https://www.youtube.com/watch?v=8f1XPm4WOUc">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Recuit simulé (IA)</td>
+<td>Recherche locale, simulated annealing</td>
+<td><a href="https://www.youtube.com/watch?v=yxtbuK3dM7Y">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Algorithmes génétiques</td>
+<td>Présentation des algorithmes génétiques</td>
+<td><a href="https://www.youtube.com/watch?v=ncj_hBfRt-Y">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Reinforcement Learning</td>
+<td>Introduction (Thibault Neveu)</td>
+<td><a href="https://www.youtube.com/watch?v=PKNxUF9CGn8&amp;list=PLpEPgC7cUJ4YPZlfUu0vQTwPraVKPASUa">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Optimiseur Adam</td>
+<td>Concept de momentum (Kevin Degila)</td>
+<td><a href="https://www.youtube.com/watch?v=Z-X35N6Qiao">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Codage de Huffman</td>
+<td>Le codage de Huffman (Olivier Levêque)</td>
+<td><a href="https://www.youtube.com/watch?v=UAY-wpHZCs4">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>10</td>
+<td>MILP</td>
+<td>Introduction à l'ILP, méthode graphique</td>
+<td><a href="https://www.youtube.com/watch?v=BmkG4p0eUoA&amp;list=PLjiMsqjDUvBiypJMlvdMIVMHLX8Q-azTo">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>11</td>
+<td>RMSProp</td>
+<td>Optimiseur RMSProp (DeepLearningAI)</td>
+<td><a href="https://www.youtube.com/watch?v=_e-LFe_igno&amp;t=4s">▶ Regarder</a></td>
+</tr>
+<tr>
+<td>12</td>
+<td>Adam</td>
+<td>Adam Optimization Algorithm (DeepLearningAI)</td>
+<td><a href="https://www.youtube.com/watch?v=JXQT_vxqwIs">▶ Regarder</a></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>Projet OptiPick — Contributeurs : Nermine, Imen, Hamid, Romain</em></p></body></html>
