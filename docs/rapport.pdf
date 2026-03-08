@@ -1,10 +1,10 @@
 RAPPORT DE SYNTHÈSE — PROJET OPTIPICK
 
-(Version détaillée – format 4 à 5 pages académiques)
+
 
 ⸻
 
-1. Résumé (Abstract)
+1. Résumé 
 
 Ce projet vise à modéliser et résoudre un problème d’allocation de commandes dans un entrepôt logistique en utilisant la programmation par contraintes via MiniZinc, couplée à Python pour le traitement des données et la visualisation. L’objectif principal est d’affecter automatiquement des commandes à des agents (robots ou humains) tout en respectant un ensemble de contraintes opérationnelles (capacités, fragilité, restrictions de zone, deadlines, incompatibilités produits). Le modèle développé permet d’obtenir une solution faisable optimisée selon un critère défini (minimisation des commandes assignées aux humains). Les résultats obtenus montrent la pertinence de l’approche par contraintes pour ce type de problème combinatoire, tout en mettant en évidence certaines limites liées aux simplifications adoptées (estimation des temps, heuristique de routage).
 
